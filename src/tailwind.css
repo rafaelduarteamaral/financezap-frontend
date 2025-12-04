@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  /* 🌱 Cores principais da marca */
+  --color-brand: #00C853;
+  --color-brand-light: #69F0AE;
+  --color-brand-dark: #00953D;
+  
+  /* 🟡 Ouro / destaque financeiro */
+  --color-gold: #E5C07B;
+  --color-gold-light: #F3D9A4;
+  --color-gold-dark: #B39553;
+  --color-gold-50: #faf7ed;
+  --color-gold-100: #f5efdb;
+  --color-gold-200: #ebdfb7;
+  --color-gold-300: #e1cf93;
+  --color-gold-400: #d7bf6f;
+  --color-gold-500: #E5C07B;
+  --color-gold-600: #B39553;
+  --color-gold-700: #806921;
+  --color-gold-800: #554616;
+  --color-gold-900: #2a230b;
+  
+  /* ⚫ Neutros */
+  --color-neutral-950: #050505;
+  --color-neutral-900: #121212;
+  --color-neutral-800: #1E1E1E;
+  --color-neutral-700: #2D2D2D;
+  --color-neutral-600: #3C3C3C;
+  --color-neutral-500: #6E6E6E;
+  --color-neutral-400: #9E9E9E;
+  --color-neutral-300: #C4C4C4;
+  --color-neutral-200: #DCDCDC;
+  --color-neutral-100: #EDEDED;
+  --color-neutral-50: #F7F7F7;
+  
+  /* 🎯 Cores de status */
+  --color-status-success: #00C853;
+  --color-status-warning: #FFB400;
+  --color-status-danger: #E53935;
+  --color-status-info: #0288D1;
+  
+  /* 🧊 Extras tecnológicos */
+  --color-tech-cyan: #00F5D4;
+  --color-tech-blue: #0A2342;
+  
+  /* Mantém primary para compatibilidade */
+  --color-primary-50: #e6f5eb;
+  --color-primary-100: #ccebd7;
+  --color-primary-200: #99d7af;
+  --color-primary-300: #66c387;
+  --color-primary-400: #33af5f;
+  --color-primary-500: #00C853;
+  --color-primary-600: #00953D;
+  --color-primary-700: #00782d;
+  --color-primary-800: #005922;
+  --color-primary-900: #003a17;
+}
+
+/* Garantir que o dark mode funcione */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
