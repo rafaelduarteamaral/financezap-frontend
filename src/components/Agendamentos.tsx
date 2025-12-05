@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaTrash, FaClock } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
+import { capitalize } from '../utils/capitalize';
 
 interface AgendamentosProps {
   isDark: boolean;
@@ -220,7 +221,7 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                     <FaMoneyBillWave className={isDark ? 'text-primary-400' : 'text-primary-600'} size={18} />
                   </AnimatedIcon>
                   <h3 className={`text-base font-semibold flex-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {agendamento.descricao}
+                    {capitalize(agendamento.descricao)}
                   </h3>
                 </div>
                 <span

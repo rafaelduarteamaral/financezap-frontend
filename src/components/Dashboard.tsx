@@ -563,7 +563,7 @@ export function Dashboard({
                           {formatarData(transacao.dataHora)}
                         </td>
                         <td className={`px-4 lg:px-6 py-4 text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                          {transacao.descricao}
+                          {capitalize(transacao.descricao)}
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -631,7 +631,7 @@ export function Dashboard({
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                          {transacao.descricao}
+                          {capitalize(transacao.descricao)}
                         </p>
                         <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                           {formatarData(transacao.dataHora)}
