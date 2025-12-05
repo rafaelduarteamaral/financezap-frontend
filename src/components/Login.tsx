@@ -5,9 +5,11 @@ import { motion } from 'framer-motion';
 import { FaWhatsapp, FaKey, FaUserPlus } from 'react-icons/fa';
 import { api } from '../services/api';
 import { Cadastro } from './Cadastro';
+import { formatPhone, unformatPhone } from '../utils/formatPhone';
 
 export function Login() {
   const [telefone, setTelefone] = useState('');
+  const [telefoneFormatado, setTelefoneFormatado] = useState('');
   const [codigo, setCodigo] = useState('');
   const [etapa, setEtapa] = useState<'telefone' | 'codigo' | 'cadastro'>('telefone');
   const [loading, setLoading] = useState(false);
@@ -20,14 +22,17 @@ export function Login() {
     setError('');
     setSucesso('');
     
-    if (!telefone.trim()) {
+    // Usa o telefone sem formatação (apenas números)
+    const telefoneLimpo = unformatPhone(telefone);
+    
+    if (!telefoneLimpo.trim()) {
       setError('Por favor, informe seu número de telefone');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.solicitarCodigo(telefone);
+      const response = await api.solicitarCodigo(telefoneLimpo);
       
       if (response.success) {
         if (response.codigo) {
@@ -38,10 +43,25 @@ export function Login() {
         }
         setEtapa('codigo');
       } else {
-        setError(response.error || 'Erro ao solicitar código');
+        // Se o número não foi encontrado, vai direto para cadastro
+        const errorMsg = response.error || '';
+        if (errorMsg.includes('não encontrado') || errorMsg.includes('não existe') || errorMsg.includes('precisa ter enviado')) {
+          // Número não cadastrado - vai para cadastro mantendo o número
+          setEtapa('cadastro');
+          setSucesso('Número não cadastrado. Complete seu cadastro para continuar.');
+        } else {
+          setError(errorMsg || 'Erro ao solicitar código');
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Erro ao solicitar código. Tente novamente.');
+      const errorMsg = err.message || 'Erro ao solicitar código. Tente novamente.';
+      // Se o erro indicar que o número não foi encontrado, vai para cadastro
+      if (errorMsg.includes('não encontrado') || errorMsg.includes('não existe') || errorMsg.includes('precisa ter enviado')) {
+        setEtapa('cadastro');
+        setSucesso('Número não cadastrado. Complete seu cadastro para continuar.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -63,7 +83,9 @@ export function Login() {
 
     setLoading(true);
     try {
-      const response = await api.verificarCodigo(telefone, codigo);
+      // Usa o telefone sem formatação (apenas números)
+      const telefoneLimpo = unformatPhone(telefone);
+      const response = await api.verificarCodigo(telefoneLimpo, codigo);
       
       if (response.success && response.token) {
         // Verifica se precisa cadastro
@@ -118,13 +140,19 @@ export function Login() {
   };
 
   const handleCadastroSucesso = () => {
+    // Volta para a tela de telefone mantendo o número preenchido
     setEtapa('telefone');
-    setSucesso('Cadastro realizado! Agora você pode fazer login.');
+    setError('');
+    setSucesso('Cadastro realizado com sucesso! Agora você pode solicitar o código de verificação.');
+    // Mantém o telefone preenchido e formatado para facilitar o login
+    if (telefone) {
+      setTelefoneFormatado(formatPhone(telefone));
+    }
   };
 
   // Se estiver na etapa de cadastro, mostra o componente de cadastro
   if (etapa === 'cadastro') {
-    return <Cadastro onVoltar={voltarDoCadastro} onCadastroSucesso={handleCadastroSucesso} />;
+    return <Cadastro telefoneInicial={telefone} onVoltar={voltarDoCadastro} onCadastroSucesso={handleCadastroSucesso} />;
   }
 
   return (
@@ -190,24 +218,22 @@ export function Login() {
                   </div>
                   <input
                     type="tel"
-                    value={telefone}
+                    value={telefoneFormatado}
                     onChange={(e) => {
-                      // Remove tudo que não é número
-                      const apenasNumeros = e.target.value.replace(/\D/g, '');
-                      setTelefone(apenasNumeros);
-                    }}
-                    onKeyPress={(e) => {
-                      // Bloqueia teclas que não são números
-                      if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
-                        e.preventDefault();
-                      }
+                      // Remove formatação para obter apenas números
+                      const apenasNumeros = unformatPhone(e.target.value);
+                      // Limita a 11 dígitos
+                      const numerosLimitados = apenasNumeros.slice(0, 11);
+                      // Atualiza o valor formatado para exibição
+                      setTelefoneFormatado(formatPhone(numerosLimitados));
+                      // Mantém o valor sem formatação para uso interno
+                      setTelefone(numerosLimitados);
                     }}
                     placeholder="(61) 98147-4690"
                     className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     disabled={loading}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={11}
+                    inputMode="tel"
+                    maxLength={15}
                   />
                 </div>
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -260,7 +286,7 @@ export function Login() {
                   />
                 </div>
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  Digite o código de 6 dígitos enviado para {telefone}
+                  Digite o código de 6 dígitos enviado para {telefoneFormatado || telefone}
                 </p>
               </div>
 

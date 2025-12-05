@@ -134,53 +134,53 @@ export function Dashboard({
   return (
     <>
       {/* Filtros */}
-      <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6 lg:mb-8 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-        <h2 className={`text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+      <div className={`rounded-lg sm:rounded-xl shadow-sm p-2.5 sm:p-4 lg:p-6 mb-3 sm:mb-4 lg:mb-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <h2 className={`text-sm sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
           <AnimatedIcon>
-            <FaSearch className={`${isDark ? 'text-slate-400' : 'text-slate-600'} w-4 h-4 sm:w-5 sm:h-5`} />
+            <FaSearch className={`${isDark ? 'text-slate-400' : 'text-slate-600'} w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5`} />
           </AnimatedIcon>
           Filtros
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Data Início</label>
+            <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Data Início</label>
             <input
               type="date"
               value={filtros.dataInicio || ''}
               onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value || undefined })}
-              className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
+              className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
             />
           </div>
 
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Data Fim</label>
+            <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Data Fim</label>
             <input
               type="date"
               value={filtros.dataFim || ''}
               onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value || undefined })}
-              className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
+              className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
             />
           </div>
 
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Descrição</label>
+            <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Descrição</label>
             <input
               type="text"
-              placeholder="Buscar por descrição..."
+              placeholder="Buscar..."
               value={filtros.descricao || ''}
               onChange={(e) => setFiltros({ ...filtros, descricao: e.target.value || undefined })}
-              className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white placeholder-slate-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'}`}
+              className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white placeholder-slate-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'}`}
             />
           </div>
 
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Categoria</label>
+            <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Categoria</label>
             <select
               value={filtros.categoria || ''}
               onChange={(e) => setFiltros({ ...filtros, categoria: e.target.value || undefined })}
-              className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
+              className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
             >
-              <option value="">Todas as categorias</option>
+              <option value="">Todas</option>
               {todasCategorias.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -190,38 +190,38 @@ export function Dashboard({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 lg:gap-4 mt-2.5 sm:mt-3 lg:mt-4">
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Valor Mínimo</label>
+            <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Valor Mínimo</label>
             <input
               type="number"
               step="0.01"
               placeholder="0.00"
               value={filtros.valorMin || ''}
               onChange={(e) => setFiltros({ ...filtros, valorMin: e.target.value ? parseFloat(e.target.value) : undefined })}
-              className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white placeholder-slate-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'}`}
+              className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white placeholder-slate-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'}`}
             />
           </div>
 
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Valor Máximo</label>
+            <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Valor Máximo</label>
             <input
               type="number"
               step="0.01"
               placeholder="999999.99"
               value={filtros.valorMax || ''}
               onChange={(e) => setFiltros({ ...filtros, valorMax: e.target.value ? parseFloat(e.target.value) : undefined })}
-              className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white placeholder-slate-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'}`}
+              className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white placeholder-slate-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'}`}
             />
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-2.5 sm:mt-3 lg:mt-4">
           <motion.button
             onClick={aplicarFiltros}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-2 text-sm sm:text-base text-white rounded-lg transition-colors font-medium shadow-md ${isDark ? 'bg-primary-500 hover:bg-primary-600' : 'bg-primary-600 hover:bg-primary-700'}`}
+            className={`flex-1 sm:flex-none px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 lg:py-2 text-xs sm:text-sm lg:text-base text-white rounded-md sm:rounded-lg transition-colors font-medium shadow-md ${isDark ? 'bg-primary-500 hover:bg-primary-600' : 'bg-primary-600 hover:bg-primary-700'}`}
           >
             Aplicar Filtros
           </motion.button>
@@ -229,7 +229,7 @@ export function Dashboard({
             onClick={limparFiltros}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-2 text-sm sm:text-base rounded-lg transition-colors font-medium shadow-md ${isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
+            className={`flex-1 sm:flex-none px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 lg:py-2 text-xs sm:text-sm lg:text-base rounded-md sm:rounded-lg transition-colors font-medium shadow-md ${isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
           >
             Limpar Filtros
           </motion.button>

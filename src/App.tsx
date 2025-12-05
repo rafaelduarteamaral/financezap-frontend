@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
+import { useToast } from './contexts/ToastContext';
 import { Login } from './components/Login';
 import { api } from './services/api';
 import type { Transacao, Estatisticas, Filtros } from './config';
+import { API_BASE_URL } from './config';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -25,12 +27,15 @@ import { Avatar } from './components/Avatar';
 import { Logo } from './components/Logo';
 import { Dashboard } from './components/Dashboard';
 import { AnimatedIcon } from './components/AnimatedIcon';
+import { ToastContainer } from './components/Toast';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { motion } from 'framer-motion';
 
 
 function App() {
   const { isAuthenticated, usuario, logout, loading: authLoading, token } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { showSuccess, showError, confirm, toasts, closeToast, confirmOptions, isConfirmOpen, closeConfirm } = useToast();
   const isDark = theme === 'dark';
   
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
@@ -84,11 +89,14 @@ function App() {
   const handleExcluirTransacao = async (id: number) => {
     // Confirmação antes de excluir
     const transacao = transacoes.find(t => t.id === id);
-    const confirmar = window.confirm(
-      `Tem certeza que deseja excluir a transação "${transacao?.descricao || 'esta transação'}"?\n\n` +
-      `Valor: ${transacao?.tipo === 'entrada' ? '+' : '-'}${formatarMoeda(transacao?.valor || 0)}\n\n` +
-      `Esta ação não pode ser desfeita.`
-    );
+    const confirmar = await confirm({
+      title: 'Excluir Transação',
+      message: `Tem certeza que deseja excluir a transação "${transacao?.descricao || 'esta transação'}"?\n\nValor: ${transacao?.tipo === 'entrada' ? '+' : '-'}${formatarMoeda(transacao?.valor || 0)}\n\nEsta ação não pode ser desfeita.`,
+      type: 'danger',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      onConfirm: () => {},
+    });
 
     if (!confirmar) {
       return;
@@ -100,14 +108,15 @@ function App() {
       
       if (resultado.success) {
         console.log('✅ Transação excluída com sucesso');
+        showSuccess('Transação excluída com sucesso!');
         // Recarrega os dados para atualizar a lista
         await carregarDados(paginaAtual);
       } else {
-        alert('Erro ao excluir transação: ' + (resultado.error || 'Erro desconhecido'));
+        showError('Erro ao excluir transação: ' + (resultado.error || 'Erro desconhecido'));
       }
     } catch (error: any) {
       console.error('❌ Erro ao excluir transação:', error);
-      alert('Erro ao excluir transação: ' + (error.message || 'Erro desconhecido'));
+      showError('Erro ao excluir transação: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
@@ -236,6 +245,270 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, usuario, authLoading]);
+
+  // Conexão SSE para atualizações em tempo real
+  useEffect(() => {
+    if (!isAuthenticated || !token || authLoading) {
+      console.log('⚠️ SSE: Não conectando -', { isAuthenticated, hasToken: !!token, authLoading });
+      return;
+    }
+
+    // Usa a mesma URL da API que o resto da aplicação (já importada no topo)
+    console.log('🔌 SSE: Iniciando conexão para', `${API_BASE_URL}/api/events`);
+    console.log('🔌 SSE: VITE_API_URL do env:', import.meta.env.VITE_API_URL);
+    console.log('🔌 SSE: PROD mode:', import.meta.env.PROD);
+    
+    // Criar uma conexão fetch manual para SSE (EventSource não suporta headers customizados)
+    let abortController: AbortController | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    let buffer = '';
+
+    const connectSSE = async () => {
+      try {
+        abortController = new AbortController();
+        
+        console.log('📡 SSE: Tentando conectar...');
+        const response = await fetch(`${API_BASE_URL}/api/events`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'text/event-stream',
+          },
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ SSE: Erro na resposta:', response.status, errorText);
+          throw new Error(`SSE connection failed: ${response.status} - ${errorText}`);
+        }
+
+        console.log('✅ SSE: Conexão estabelecida, status:', response.status);
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        reconnectAttempts = 0; // Reset contador ao conectar
+        buffer = ''; // Limpa buffer
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            console.log('📡 SSE: Conexão fechada pelo servidor');
+            break;
+          }
+
+          // Decodifica e adiciona ao buffer
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Processa linhas completas
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Mantém última linha incompleta no buffer
+          
+          let currentEvent = '';
+          let currentData = '';
+
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            // Ignora pings (keep-alive)
+            if (trimmedLine === ': ping' || trimmedLine === 'ping' || trimmedLine.startsWith(': ')) {
+              console.log('💓 SSE: Ping recebido (keep-alive)');
+              continue;
+            }
+            
+            if (trimmedLine.startsWith('event: ')) {
+              currentEvent = trimmedLine.substring(7).trim();
+              console.log('📨 SSE: Evento detectado:', currentEvent);
+              continue;
+            }
+            
+            if (trimmedLine.startsWith('data: ')) {
+              currentData = trimmedLine.substring(6).trim();
+              console.log('📨 SSE: Dados recebidos:', currentData);
+              
+              // Se a linha está vazia após 'data:', é o fim do evento
+              if (trimmedLine === 'data:' || currentData === '') {
+                if (currentEvent && currentData) {
+                  console.log('📨 SSE: Processando evento completo:', currentEvent, currentData);
+                  processSSEEvent(currentEvent, currentData);
+                }
+                currentEvent = '';
+                currentData = '';
+                continue;
+              }
+              
+              // Se temos dados, processa
+              if (currentData) {
+                console.log('📨 SSE: Processando evento com dados:', currentEvent, currentData);
+                processSSEEvent(currentEvent, currentData);
+                currentEvent = '';
+                currentData = '';
+              }
+            } else if (trimmedLine === '' && currentData) {
+              // Linha vazia indica fim do evento
+              if (currentData) {
+                console.log('📨 SSE: Processando evento (linha vazia):', currentEvent, currentData);
+                processSSEEvent(currentEvent, currentData);
+                currentEvent = '';
+                currentData = '';
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('📡 SSE: Conexão abortada (limpeza)');
+          return;
+        }
+        
+        console.error('❌ SSE: Erro na conexão:', error);
+        
+        // Reconexão automática com backoff exponencial
+        if (reconnectAttempts < maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          console.log(`🔄 SSE: Tentando reconectar em ${delay}ms... (tentativa ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+          
+          reconnectTimeout = setTimeout(() => {
+            reconnectAttempts++;
+            connectSSE();
+          }, delay);
+        } else {
+          console.error('❌ SSE: Máximo de tentativas de reconexão atingido');
+        }
+      }
+    };
+
+    const processSSEEvent = (eventType: string, data: string) => {
+      try {
+        if (!data) return;
+        
+        const parsed = JSON.parse(data);
+        console.log('📨 SSE: Evento recebido:', eventType, parsed);
+        
+        if (eventType === 'connected' || parsed.message === 'Conectado') {
+          console.log('✅ SSE: Conectado com sucesso');
+        } else if (eventType === 'transacao-nova' || parsed.tipo === 'transacao') {
+          console.log('📡 SSE: Nova transação detectada, recarregando dados...');
+          // Recarrega dados quando recebe notificação de nova transação
+          // Usa valores atuais diretamente (não precisa de refs)
+          carregarDados(paginaAtual);
+          showSuccess('Nova transação registrada!');
+        } else if (eventType === 'categoria-removida' || parsed.tipo === 'categoria') {
+          console.log('📡 SSE: Categoria atualizada, recarregando dados...');
+          // Recarrega dados quando categoria é atualizada
+          carregarDados(paginaAtual);
+        }
+      } catch (e) {
+        console.error('❌ SSE: Erro ao processar evento:', e, 'Data:', data);
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      console.log('🧹 SSE: Limpando conexão...');
+      if (abortController) {
+        abortController.abort();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token, authLoading]); // Removido paginaAtual, carregarDados e showSuccess das dependências
+
+  // Polling de notificações (fallback quando SSE não funciona)
+  useEffect(() => {
+    if (!isAuthenticated || !token || authLoading) {
+      return;
+    }
+
+    console.log('🔄 Polling: Iniciando verificação de notificações...');
+    
+    let pollingInterval: ReturnType<typeof setInterval> | null = null;
+    
+    const verificarNotificacoes = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/notificacoes`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          console.warn('⚠️ Polling: Erro ao buscar notificações:', response.status);
+          return;
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.notificacoes && data.notificacoes.length > 0) {
+          console.log(`📨 Polling: ${data.notificacoes.length} notificação(ões) encontrada(s)`);
+          
+          // Processa cada notificação
+          const idsParaMarcar: number[] = [];
+          for (const notificacao of data.notificacoes) {
+            console.log('📨 Polling: Processando notificação:', notificacao);
+            
+            if (notificacao.tipo === 'transacao-nova' || notificacao.dados?.tipo === 'transacao') {
+              console.log('📡 Polling: Nova transação detectada, recarregando dados...');
+              carregarDados(paginaAtual);
+              showSuccess('Nova transação registrada!');
+            } else if (notificacao.tipo === 'categoria-removida' || notificacao.dados?.tipo === 'categoria') {
+              console.log('📡 Polling: Categoria atualizada, recarregando dados...');
+              carregarDados(paginaAtual);
+            }
+            
+            if (notificacao.id) {
+              idsParaMarcar.push(notificacao.id);
+            }
+          }
+          
+          // Marca notificações como lidas
+          if (idsParaMarcar.length > 0) {
+            try {
+              await fetch(`${API_BASE_URL}/api/notificacoes/marcar-lidas`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ids: idsParaMarcar }),
+              });
+              console.log(`✅ Polling: ${idsParaMarcar.length} notificação(ões) marcada(s) como lida(s)`);
+            } catch (error) {
+              console.error('❌ Polling: Erro ao marcar notificações como lidas:', error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Polling: Erro ao verificar notificações:', error);
+      }
+    };
+
+    // Verifica imediatamente
+    verificarNotificacoes();
+    
+    // Configura polling a cada 5 segundos
+    pollingInterval = setInterval(verificarNotificacoes, 5000);
+    
+    return () => {
+      console.log('🧹 Polling: Limpando intervalo...');
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token, authLoading, carregarDados, paginaAtual, showSuccess]);
 
   // Carrega dados quando muda itens por página (volta para página 1)
   useEffect(() => {
@@ -403,7 +676,7 @@ function App() {
           {/* Linha superior: Logo e ações */}
           <div className="flex items-center justify-between mb-2 sm:mb-3 lg:mb-4 gap-1.5 sm:gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-1 min-w-0">
-              <Logo size={28} className="sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+              <Logo size={36} className="sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" />
               <div className="min-w-0 flex-1">
                 <h1 className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Zela</h1>
                 <p className={`text-[9px] sm:text-xs lg:text-sm mt-0.5 hidden sm:block ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Dashboard Administrativo</p>
@@ -445,7 +718,7 @@ function App() {
               {/* Informações do usuário - completamente ocultas em mobile */}
               {usuario && (
                 <div className="text-right hidden xl:block">
-                  <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conectado como</div>
+                  <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conectado Como</div>
                   <div className={`text-xs font-medium truncate max-w-[120px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {formatarNumero(usuario.telefone)}
                   </div>
@@ -466,7 +739,7 @@ function App() {
                 <span className="hidden sm:inline">Sair</span>
                 <span className="sm:hidden text-xs">✕</span>
               </motion.button>
-            </div>
+              </div>
           </div>
               
               {/* Abas de navegação */}
@@ -525,13 +798,13 @@ function App() {
               {usuario && (
             <div className="hidden xl:flex items-center justify-end gap-4 mt-2">
                 <div className="text-right">
-                <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conectado como</div>
+                <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conectado Como</div>
                 <div className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {formatarNumero(usuario.telefone)}
                   </div>
                 </div>
               <div className="text-right">
-                <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Última atualização</div>
+                <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Última Atualização</div>
                 <div className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                 </div>
@@ -701,7 +974,7 @@ function App() {
             setItensPorPagina={setItensPorPagina}
             irParaPagina={irParaPagina}
             handleExcluirTransacao={handleExcluirTransacao}
-          />
+                />
         )}
 
         {/* Chat de IA - Agora é um popup flutuante */}
@@ -713,6 +986,17 @@ function App() {
           onClose={() => setConfiguracoesAberto(false)} 
         />
       </main>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={closeToast} isDark={isDark} />
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialog 
+        isOpen={isConfirmOpen} 
+        options={confirmOptions} 
+        onClose={closeConfirm} 
+        isDark={isDark} 
+      />
     </div>
   );
 }

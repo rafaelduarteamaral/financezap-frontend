@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useToast } from '../contexts/ToastContext';
 import { api } from '../services/api';
 import { Avatar } from './Avatar';
 import { motion } from 'framer-motion';
@@ -98,6 +99,7 @@ const PLANOS: Plano[] = [
 export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   const { usuario, atualizarUsuario } = useAuth();
   const { theme } = useTheme();
+  const { showSuccess, showError, showInfo } = useToast();
   const isDark = theme === 'dark';
   
   const [abaAtiva, setAbaAtiva] = useState<'perfil' | 'planos'>('perfil');
@@ -128,7 +130,7 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
 
   const handleSalvarPerfil = async () => {
     if (!nome.trim()) {
-      alert('Por favor, informe seu nome');
+      showError('Por favor, informe seu nome');
       return;
     }
 
@@ -153,21 +155,21 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
         
         setSalvando(false);
         setEditando(false);
-        alert('Dados salvos com sucesso!');
+        showSuccess('Dados salvos com sucesso!');
       } else {
         throw new Error(response.error || 'Erro ao salvar perfil');
       }
     } catch (error: any) {
       console.error('❌ Erro ao salvar perfil:', error);
       setSalvando(false);
-      alert(`Erro ao salvar: ${error.message}`);
+      showError(`Erro ao salvar: ${error.message}`);
     }
   };
 
   const handleAssinarPlano = async (planoId: string) => {
     // TODO: Implementar integração com gateway de pagamento
     console.log('Assinando plano:', planoId);
-    alert(`Redirecionando para assinatura do plano ${planoId}...`);
+    showInfo(`Redirecionando para assinatura do plano ${planoId}...`);
   };
 
   const handleEnviarContato = async () => {
@@ -177,13 +179,13 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
       const response = await api.enviarMensagemContato();
       
       if (response.success) {
-        alert('✅ Mensagem enviada! Verifique seu WhatsApp para ver as instruções de como salvar nosso contato.');
+        showSuccess('Mensagem enviada! Verifique seu WhatsApp para ver as instruções de como salvar nosso contato.');
       } else {
         throw new Error(response.error || 'Erro ao enviar mensagem');
       }
     } catch (error: any) {
       console.error('❌ Erro ao enviar mensagem de contato:', error);
-      alert(`Erro ao enviar mensagem: ${error.message}`);
+      showError(`Erro ao enviar mensagem: ${error.message}`);
     } finally {
       setEnviandoContato(false);
     }
@@ -196,18 +198,21 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
       const response = await api.excluirTodosDados();
       
       if (response.success) {
-        alert(`✅ Todos os seus dados foram excluídos permanentemente.\n\nDados removidos:\n- ${response.dadosRemovidos.transacoes} transações\n- ${response.dadosRemovidos.agendamentos} agendamentos\n- ${response.dadosRemovidos.categorias} categorias\n\nVocê será redirecionado para a tela de login.`);
+        const dadosRemovidos = response.dadosRemovidos || { transacoes: 0, agendamentos: 0, categorias: 0 };
+        showSuccess(`Todos os seus dados foram excluídos permanentemente.\n\nDados removidos:\n- ${dadosRemovidos.transacoes || 0} transações\n- ${dadosRemovidos.agendamentos || 0} agendamentos\n- ${dadosRemovidos.categorias || 0} categorias\n\nVocê será redirecionado para a tela de login.`);
         
         // Limpa localStorage e redireciona
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_usuario');
-        window.location.href = '/login';
+        setTimeout(() => {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_usuario');
+          window.location.href = '/login';
+        }, 2000);
       } else {
         throw new Error(response.error || 'Erro ao excluir dados');
       }
     } catch (error: any) {
       console.error('❌ Erro ao excluir dados:', error);
-      alert(`Erro ao excluir dados: ${error.message}`);
+      showError(`Erro ao excluir dados: ${error.message}`);
     } finally {
       setExcluindoDados(false);
       setMostrarConfirmacaoExclusao(false);

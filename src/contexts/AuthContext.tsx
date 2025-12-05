@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Token válido - atualiza dados
             console.log('✅ Token válido na verificação, atualizando dados do usuário');
             setUsuario(data.usuario);
-            localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
+              localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
           } else {
             // Token inválido - mas mantém sessão local por enquanto
             console.warn('⚠️ Token inválido na verificação, mas mantendo sessão local');
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const savedUsuario = localStorage.getItem('auth_usuario');
         if (savedUsuario) {
           try {
-            setUsuario(JSON.parse(savedUsuario));
+          setUsuario(JSON.parse(savedUsuario));
           } catch (e) {
             console.error('Erro ao parsear usuário:', e);
           }

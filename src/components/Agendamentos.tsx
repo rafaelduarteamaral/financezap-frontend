@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 import type { Agendamento } from '../config';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,6 +13,7 @@ interface AgendamentosProps {
 }
 
 export function Agendamentos({ isDark }: AgendamentosProps) {
+  const { showSuccess, showError, confirm } = useToast();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendente' | 'pago' | 'cancelado'>('todos');
@@ -57,24 +59,35 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
   const handleAtualizarStatus = async (id: number, novoStatus: 'pendente' | 'pago' | 'cancelado') => {
     try {
       await api.atualizarAgendamento(id, novoStatus);
+      showSuccess('Status do agendamento atualizado com sucesso!');
       await carregarAgendamentos();
     } catch (error: any) {
       console.error('❌ Erro ao atualizar agendamento:', error);
-      alert('Erro ao atualizar agendamento: ' + error.message);
+      showError('Erro ao atualizar agendamento: ' + error.message);
     }
   };
 
   const handleRemover = async (id: number) => {
-    if (!confirm('Tem certeza que deseja remover este agendamento?')) {
+    const confirmar = await confirm({
+      title: 'Remover Agendamento',
+      message: 'Tem certeza que deseja remover este agendamento?',
+      type: 'danger',
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      onConfirm: () => {},
+    });
+
+    if (!confirmar) {
       return;
     }
 
     try {
       await api.removerAgendamento(id);
+      showSuccess('Agendamento removido com sucesso!');
       await carregarAgendamentos();
     } catch (error: any) {
       console.error('❌ Erro ao remover agendamento:', error);
-      alert('Erro ao remover agendamento: ' + error.message);
+      showError('Erro ao remover agendamento: ' + error.message);
     }
   };
 
@@ -221,19 +234,19 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center justify-between">
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Valor</p>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Valor:</p>
                   <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {formatarMoeda(agendamento.valor)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Data</p>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Data:</p>
                   <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {formatarData(agendamento.dataAgendamento)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Tipo</p>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Tipo:</p>
                   <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {agendamento.tipo === 'pagamento' ? 'Pagamento' : 'Recebimento'}
                   </p>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 import type { Categoria } from '../config';
 import { motion } from 'framer-motion';
 import { FaTag, FaPlus, FaEdit, FaTrash, FaLock } from 'react-icons/fa';
@@ -10,6 +11,7 @@ interface CategoriasProps {
 }
 
 export function Categorias({ isDark }: CategoriasProps) {
+  const { showSuccess, showError, showWarning, confirm } = useToast();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -32,7 +34,7 @@ export function Categorias({ isDark }: CategoriasProps) {
       }
     } catch (error: any) {
       console.error('❌ Erro ao carregar categorias:', error);
-      alert('Erro ao carregar categorias: ' + error.message);
+      showError('Erro ao carregar categorias: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -46,17 +48,17 @@ export function Categorias({ isDark }: CategoriasProps) {
     e.preventDefault();
     
     if (!formData.nome.trim()) {
-      alert('Nome da categoria é obrigatório');
+      showError('Nome da categoria é obrigatório');
       return;
     }
 
     try {
       if (editando) {
         await api.atualizarCategoria(editando.id, formData);
-        alert('Categoria atualizada com sucesso!');
+        showSuccess('Categoria atualizada com sucesso!');
       } else {
         await api.criarCategoria(formData);
-        alert('Categoria criada com sucesso!');
+        showSuccess('Categoria criada com sucesso!');
       }
       
       setMostrarForm(false);
@@ -65,13 +67,13 @@ export function Categorias({ isDark }: CategoriasProps) {
       await carregarCategorias();
     } catch (error: any) {
       console.error('❌ Erro ao salvar categoria:', error);
-      alert('Erro ao salvar categoria: ' + error.message);
+      showError('Erro ao salvar categoria: ' + error.message);
     }
   };
 
   const handleEditar = (categoria: Categoria) => {
     if (categoria.padrao) {
-      alert('Não é possível editar categorias padrão');
+      showWarning('Não é possível editar categorias padrão');
       return;
     }
     setEditando(categoria);
@@ -86,21 +88,30 @@ export function Categorias({ isDark }: CategoriasProps) {
 
   const handleRemover = async (id: number, padrao: boolean) => {
     if (padrao) {
-      alert('Não é possível remover categorias padrão');
+      showWarning('Não é possível remover categorias padrão');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja remover esta categoria?')) {
+    const confirmar = await confirm({
+      title: 'Remover Categoria',
+      message: 'Tem certeza que deseja remover esta categoria?',
+      type: 'danger',
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      onConfirm: () => {},
+    });
+
+    if (!confirmar) {
       return;
     }
 
     try {
       await api.removerCategoria(id);
-      alert('Categoria removida com sucesso!');
+      showSuccess('Categoria removida com sucesso!');
       await carregarCategorias();
     } catch (error: any) {
       console.error('❌ Erro ao remover categoria:', error);
-      alert('Erro ao remover categoria: ' + error.message);
+      showError('Erro ao remover categoria: ' + error.message);
     }
   };
 

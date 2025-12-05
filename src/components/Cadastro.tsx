@@ -1,21 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatedIcon } from './AnimatedIcon';
 import { motion } from 'framer-motion';
 import { FaMoneyBillWave, FaUser, FaEnvelope, FaWhatsapp, FaArrowLeft } from 'react-icons/fa';
 import { api } from '../services/api';
+import { formatPhone, unformatPhone } from '../utils/formatPhone';
 
 interface CadastroProps {
+  telefoneInicial?: string;
   onVoltar: () => void;
   onCadastroSucesso: () => void;
 }
 
-export function Cadastro({ onVoltar, onCadastroSucesso }: CadastroProps) {
+export function Cadastro({ telefoneInicial, onVoltar, onCadastroSucesso }: CadastroProps) {
   const [nome, setNome] = useState('');
-  const [telefone, setTelefone] = useState('');
+  const [telefone, setTelefone] = useState(telefoneInicial || '');
+  const [telefoneFormatado, setTelefoneFormatado] = useState(telefoneInicial ? formatPhone(telefoneInicial) : '');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sucesso, setSucesso] = useState('');
+
+  // Atualiza o telefone quando telefoneInicial mudar
+  useEffect(() => {
+    if (telefoneInicial) {
+      setTelefone(telefoneInicial);
+      setTelefoneFormatado(formatPhone(telefoneInicial));
+    }
+  }, [telefoneInicial]);
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,14 +38,17 @@ export function Cadastro({ onVoltar, onCadastroSucesso }: CadastroProps) {
       return;
     }
     
-    if (!telefone.trim()) {
+    // Usa o telefone sem formatação (apenas números)
+    const telefoneLimpo = unformatPhone(telefone);
+    
+    if (!telefoneLimpo.trim()) {
       setError('Por favor, informe seu número de telefone');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.cadastro(telefone, nome, email || undefined);
+      const response = await api.cadastro(telefoneLimpo, nome, email || undefined);
       
       if (response.success) {
         setSucesso('Cadastro realizado com sucesso! Seu trial de 7 dias foi ativado.');
@@ -133,25 +147,23 @@ export function Cadastro({ onVoltar, onCadastroSucesso }: CadastroProps) {
                 </div>
                 <input
                   type="tel"
-                  value={telefone}
+                  value={telefoneFormatado}
                   onChange={(e) => {
-                    // Remove tudo que não é número
-                    const apenasNumeros = e.target.value.replace(/\D/g, '');
-                    setTelefone(apenasNumeros);
-                  }}
-                  onKeyPress={(e) => {
-                    // Bloqueia teclas que não são números
-                    if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
-                      e.preventDefault();
-                    }
+                    // Remove formatação para obter apenas números
+                    const apenasNumeros = unformatPhone(e.target.value);
+                    // Limita a 11 dígitos
+                    const numerosLimitados = apenasNumeros.slice(0, 11);
+                    // Atualiza o valor formatado para exibição
+                    setTelefoneFormatado(formatPhone(numerosLimitados));
+                    // Mantém o valor sem formatação para uso interno
+                    setTelefone(numerosLimitados);
                   }}
                   placeholder="(61) 98147-4690"
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={loading}
                   required
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={11}
+                  inputMode="tel"
+                  maxLength={15}
                 />
               </div>
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">

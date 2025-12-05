@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../contexts/ToastContext';
 import { FaDownload, FaTimes, FaMobileAlt } from 'react-icons/fa';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -7,6 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPrompt() {
+  const { showInfo } = useToast();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -110,31 +112,34 @@ export function InstallPrompt() {
 
     // Para iOS, mostra instruções
     if (isIOS) {
-      alert(
+      showInfo(
         'Para instalar no iOS:\n\n' +
         '1. Toque no botão "Compartilhar" (ícone de compartilhamento)\n' +
         '2. Role para baixo e toque em "Adicionar à Tela de Início"\n' +
-        '3. Toque em "Adicionar"'
+        '3. Toque em "Adicionar"',
+        10000
       );
       return;
     }
 
     // Para Android sem o evento, mostra instruções
     if (isAndroid) {
-      alert(
+      showInfo(
         'Para instalar no Android:\n\n' +
         '1. Toque no menu (3 pontos) no canto superior direito\n' +
         '2. Selecione "Adicionar à tela inicial" ou "Instalar app"\n' +
-        '3. Confirme a instalação'
+        '3. Confirme a instalação',
+        10000
       );
       return;
     }
 
     // Fallback genérico
-    alert(
+    showInfo(
       'Para instalar este app:\n\n' +
       '1. Procure pelo ícone de instalação na barra de endereços\n' +
-      '2. Ou use o menu do navegador para "Instalar app"'
+      '2. Ou use o menu do navegador para "Instalar app"',
+      10000
     );
   };
 
