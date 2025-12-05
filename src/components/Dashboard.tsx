@@ -86,7 +86,7 @@ export function Dashboard({
         return acc;
       }, {})
   )
-    .map(([name, value]: [string, any]) => ({ name, value }))
+    .map(([name, value]: [string, any]) => ({ name: capitalize(name), value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
   
@@ -100,7 +100,7 @@ export function Dashboard({
         return acc;
       }, {})
   )
-    .map(([name, value]: [string, any]) => ({ name, value }))
+    .map(([name, value]: [string, any]) => ({ name: capitalize(name), value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
@@ -437,8 +437,10 @@ export function Dashboard({
                   <Cell key={`cell-saida-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatarMoeda(value)} />
-              <Legend />
+              <Tooltip 
+                formatter={(value: number, name: string) => [formatarMoeda(value), capitalize(name)]}
+              />
+              <Legend formatter={(value: string) => capitalize(value)} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -470,8 +472,10 @@ export function Dashboard({
                     <Cell key={`cell-entrada-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatarMoeda(value)} />
-                <Legend />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [formatarMoeda(value), capitalize(name)]}
+                />
+                <Legend formatter={(value: string) => capitalize(value)} />
               </PieChart>
             </ResponsiveContainer>
           </div>
