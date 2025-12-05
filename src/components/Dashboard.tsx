@@ -17,6 +17,7 @@ import {
 import { FaSearch, FaTrash, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
 import type { Transacao, Filtros } from '../config';
+import { capitalize } from '../utils/capitalize';
 
 const COLORS = ['#00C853', '#E5C07B', '#00953D', '#B39553', '#69F0AE'];
 
@@ -183,7 +184,7 @@ export function Dashboard({
               <option value="">Todas</option>
               {todasCategorias.map((cat) => (
                 <option key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  {capitalize(cat)}
                 </option>
               ))}
             </select>
@@ -308,7 +309,7 @@ export function Dashboard({
                 labelLine={false}
                 label={(props: any) => {
                   const { name, percent, value } = props;
-                  return `${name}: ${formatarMoeda(value)} (${((percent || 0) * 100).toFixed(0)}%)`;
+                  return `${capitalize(name)}: ${formatarMoeda(value)} (${((percent || 0) * 100).toFixed(0)}%)`;
                 }}
                 outerRadius={80}
                 fill="#8884d8"
@@ -424,7 +425,7 @@ export function Dashboard({
                 label={(props: any) => {
                   const { name, percent } = props;
                   if (percent === 0) return '';
-                  return `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`;
+                  return `${capitalize(name || '')} ${((percent || 0) * 100).toFixed(0)}%`;
                 }}
                 outerRadius={80}
                 fill="#8884d8"
@@ -580,7 +581,7 @@ export function Dashboard({
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isDark ? 'bg-primary-900 text-primary-200' : 'bg-primary-100 text-primary-800'}`}>
-                            {transacao.categoria || 'outros'}
+                            {capitalize(transacao.categoria || 'outros')}
                           </span>
                         </td>
                         <td className={`px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${
@@ -673,7 +674,7 @@ export function Dashboard({
                         {transacao.metodo === 'credito' ? 'Crédito' : 'Débito'}
                       </span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isDark ? 'bg-primary-900 text-primary-200' : 'bg-primary-100 text-primary-800'}`}>
-                        {transacao.categoria || 'outros'}
+                        {capitalize(transacao.categoria || 'outros')}
                       </span>
                     </div>
                   </div>
