@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, addMonths, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   LineChart,
@@ -14,7 +15,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { FaSearch, FaTrash, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaSearch, FaTrash, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
 import type { Transacao, Filtros } from '../config';
 import { capitalize } from '../utils/capitalize';
@@ -60,6 +61,22 @@ export function Dashboard({
   irParaPagina,
   handleExcluirTransacao,
 }: DashboardProps) {
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<Date>(new Date());
+  const [filtroRapidoAtivo, setFiltroRapidoAtivo] = useState<'hoje' | '7dias' | 'mes' | 'ano' | null>(null);
+  const [cardsExpandidos, setCardsExpandidos] = useState<{ [key: string]: boolean }>({
+    saldoAnterior: false,
+    receitas: false,
+    despesas: false,
+    saldoPrevisto: false,
+  });
+
+  const toggleCard = (card: string) => {
+    setCardsExpandidos(prev => ({
+      ...prev,
+      [card]: !prev[card]
+    }));
+  };
+
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -132,15 +149,393 @@ export function Dashboard({
     { name: 'Débito', value: totalDebito, color: '#8b5cf6' },
   ];
 
+  // Funções para filtros rápidos
+  const aplicarFiltroRapido = (tipo: 'hoje' | '7dias' | 'mes' | 'ano') => {
+    const hoje = new Date();
+    let dataInicio: Date;
+    let dataFim: Date = endOfDay(hoje);
+
+    switch (tipo) {
+      case 'hoje':
+        dataInicio = startOfDay(hoje);
+        break;
+      case '7dias':
+        dataInicio = startOfDay(subDays(hoje, 7));
+        break;
+      case 'mes':
+        dataInicio = startOfMonth(hoje);
+        dataFim = endOfMonth(hoje);
+        break;
+      case 'ano':
+        dataInicio = startOfYear(hoje);
+        dataFim = endOfYear(hoje);
+        break;
+    }
+
+    const novosFiltros = {
+      ...filtros,
+      dataInicio: format(dataInicio, 'yyyy-MM-dd'),
+      dataFim: format(dataFim, 'yyyy-MM-dd'),
+    };
+    setFiltros(novosFiltros);
+    setPeriodoSelecionado(hoje);
+    setFiltroRapidoAtivo(tipo);
+    // Aplicar os filtros automaticamente
+    setTimeout(() => aplicarFiltros(), 100);
+  };
+
+  const navegarMes = (direcao: 'anterior' | 'proximo') => {
+    const novoPeriodo = direcao === 'anterior' 
+      ? subMonths(periodoSelecionado, 1)
+      : addMonths(periodoSelecionado, 1);
+    setPeriodoSelecionado(novoPeriodo);
+    
+    const inicioMes = startOfMonth(novoPeriodo);
+    const fimMes = endOfMonth(novoPeriodo);
+    
+    const novosFiltros = {
+      ...filtros,
+      dataInicio: format(inicioMes, 'yyyy-MM-dd'),
+      dataFim: format(fimMes, 'yyyy-MM-dd'),
+    };
+    setFiltros(novosFiltros);
+    setFiltroRapidoAtivo(null); // Limpar seleção de filtro rápido ao navegar mês
+    // Aplicar os filtros automaticamente
+    setTimeout(() => aplicarFiltros(), 100);
+  };
+
+  // Cálculos para os cards de resumo - aplicando filtros de data
+  const transacoesFiltradas = todasTransacoesParaGraficos.filter((t) => {
+    if (filtros.dataInicio || filtros.dataFim) {
+      const dataTransacao = new Date(t.dataHora);
+      const dataInicio = filtros.dataInicio ? new Date(filtros.dataInicio) : null;
+      const dataFim = filtros.dataFim ? new Date(filtros.dataFim + 'T23:59:59') : null;
+      
+      if (dataInicio && dataTransacao < dataInicio) return false;
+      if (dataFim && dataTransacao > dataFim) return false;
+    }
+    return true;
+  });
+
+  const receitas = transacoesFiltradas
+    .filter(t => t.tipo === 'entrada')
+    .reduce((sum, t) => sum + t.valor, 0);
+  const despesas = transacoesFiltradas
+    .filter(t => t.tipo === 'saida')
+    .reduce((sum, t) => sum + t.valor, 0);
+  const saldoPrevisto = receitas - despesas;
+  
+  // Calcular saldo anterior (período antes do filtro de data início)
+  const saldoAnterior = (() => {
+    if (!filtros.dataInicio) return 0;
+    const dataInicio = new Date(filtros.dataInicio);
+    const transacoesAnteriores = todasTransacoesParaGraficos.filter((t) => {
+      const dataTransacao = new Date(t.dataHora);
+      return dataTransacao < dataInicio;
+    });
+    const entradasAnteriores = transacoesAnteriores
+      .filter(t => t.tipo === 'entrada')
+      .reduce((sum, t) => sum + t.valor, 0);
+    const saidasAnteriores = transacoesAnteriores
+      .filter(t => t.tipo === 'saida')
+      .reduce((sum, t) => sum + t.valor, 0);
+    return entradasAnteriores - saidasAnteriores;
+  })();
+
+  const formatarPeriodo = () => {
+    if (filtros.dataInicio && filtros.dataFim) {
+      const inicio = new Date(filtros.dataInicio);
+      const fim = new Date(filtros.dataFim);
+      if (format(inicio, 'dd/MM/yyyy') === format(fim, 'dd/MM/yyyy')) {
+        return format(inicio, 'dd \'De\' MMMM', { locale: ptBR });
+      }
+      return `${format(inicio, 'dd \'De\' MMMM', { locale: ptBR })} - ${format(fim, 'dd \'De\' MMMM', { locale: ptBR })}`;
+    }
+    return format(periodoSelecionado, 'MMMM', { locale: ptBR });
+  };
+
   return (
     <>
-      {/* Filtros */}
+      {/* Novos Filtros */}
+      <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+            >
+              <FaCalendarAlt size={16} />
+              Data De Vencimento
+            </motion.button>
+            
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => navegarMes('anterior')}
+                className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+              >
+                <FaArrowLeft className={isDark ? 'text-slate-300' : 'text-slate-700'} size={16} />
+              </motion.button>
+              
+              <span className={`text-base font-semibold min-w-[120px] text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {format(periodoSelecionado, 'MMMM', { locale: ptBR })}
+              </span>
+              
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => navegarMes('proximo')}
+                className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+              >
+                <FaArrowRight className={isDark ? 'text-slate-300' : 'text-slate-700'} size={16} />
+              </motion.button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => aplicarFiltroRapido('hoje')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                filtroRapidoAtivo === 'hoje'
+                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
+              }`}
+            >
+              Hoje
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => aplicarFiltroRapido('7dias')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                filtroRapidoAtivo === '7dias'
+                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
+              }`}
+            >
+              7 Dias Atrás
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => aplicarFiltroRapido('mes')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                filtroRapidoAtivo === 'mes'
+                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
+              }`}
+            >
+              Esse Mês
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => aplicarFiltroRapido('ano')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                filtroRapidoAtivo === 'ano'
+                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
+              }`}
+            >
+              Esse Ano
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              {filtros.dataInicio && filtros.dataFim 
+                ? `${format(new Date(filtros.dataInicio), 'dd/MM')} - ${format(new Date(filtros.dataFim), 'dd/MM')}`
+                : format(new Date(), 'dd/MM - dd/MM')
+              }
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                limparFiltros();
+                setFiltroRapidoAtivo(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+            >
+              <FaFilter size={14} />
+              Limpar Filtro
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={aplicarFiltros}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${isDark ? 'bg-primary-500 hover:bg-primary-600 text-white' : 'bg-primary-600 hover:bg-primary-700 text-white'}`}
+            >
+              <FaSync size={14} />
+              Atualizar
+            </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* Cards de Resumo Financeiro */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6 lg:mb-8">
+        {/* Saldo Do Periodo Anterior */}
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FaChartLine className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Saldo Do Periodo Anterior</h3>
+            </div>
+          </div>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+            {formatarMoeda(saldoAnterior)}
+          </p>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Até {format(subDays(new Date(filtros.dataInicio ? new Date(filtros.dataInicio) : new Date()), 1), 'dd \'De\' MMMM', { locale: ptBR })}
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => toggleCard('saldoAnterior')}
+            className={`w-full text-xs sm:text-sm font-medium py-2 rounded-lg ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            {cardsExpandidos.saldoAnterior ? 'Ocultar Detalhes' : 'Mostrar Detalhes'}
+          </motion.button>
+          {cardsExpandidos.saldoAnterior && (
+            <div className="mt-3 space-y-2">
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-orange-900/20' : 'bg-orange-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>Pendências</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>R$ 0,00</span>
+              </div>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-green-300' : 'text-green-700'}`}>Disponível</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-green-300' : 'text-green-700'}`}>R$ 0,00</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Receitas */}
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FaArrowUp className={isDark ? 'text-green-400' : 'text-green-600'} size={20} />
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Receitas</h3>
+            </div>
+          </div>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+            {formatarMoeda(receitas)}
+          </p>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            {formatarPeriodo()}
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => toggleCard('receitas')}
+            className={`w-full text-xs sm:text-sm font-medium py-2 rounded-lg ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            {cardsExpandidos.receitas ? 'Ocultar Detalhes' : 'Mostrar Detalhes'}
+          </motion.button>
+          {cardsExpandidos.receitas && (
+            <div className="mt-3 space-y-2">
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-green-300' : 'text-green-700'}`}>Recebido</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-green-300' : 'text-green-700'}`}>{formatarMoeda(receitas)}</span>
+              </div>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-orange-900/20' : 'bg-orange-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>A Receber</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>R$ 0,00</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Despesas */}
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FaArrowDown className={isDark ? 'text-red-400' : 'text-red-600'} size={20} />
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Despesas</h3>
+            </div>
+          </div>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+            {formatarMoeda(despesas)}
+          </p>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            {formatarPeriodo()}
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => toggleCard('despesas')}
+            className={`w-full text-xs sm:text-sm font-medium py-2 rounded-lg ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            {cardsExpandidos.despesas ? 'Ocultar Detalhes' : 'Mostrar Detalhes'}
+          </motion.button>
+          {cardsExpandidos.despesas && (
+            <div className="mt-3 space-y-2">
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-green-300' : 'text-green-700'}`}>Pago</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-green-300' : 'text-green-700'}`}>{formatarMoeda(despesas)}</span>
+              </div>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-orange-900/20' : 'bg-orange-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>A Pagar</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>R$ 0,00</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Saldo Previsto */}
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FaChartLine className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Saldo Previsto</h3>
+            </div>
+          </div>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${saldoPrevisto >= 0 ? (isDark ? 'text-blue-400' : 'text-blue-600') : (isDark ? 'text-red-400' : 'text-red-600')}`}>
+            {formatarMoeda(saldoPrevisto)}
+          </p>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Até {format(new Date(filtros.dataFim || new Date()), 'dd \'De\' MMMM', { locale: ptBR })}
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => toggleCard('saldoPrevisto')}
+            className={`w-full text-xs sm:text-sm font-medium py-2 rounded-lg ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+          >
+            {cardsExpandidos.saldoPrevisto ? 'Ocultar Detalhes' : 'Mostrar Detalhes'}
+          </motion.button>
+          {cardsExpandidos.saldoPrevisto && (
+            <div className="mt-3 space-y-2">
+              <div className={`flex justify-between items-center p-2 rounded ${saldoPrevisto >= 0 ? (isDark ? 'bg-red-900/20' : 'bg-red-50') : (isDark ? 'bg-red-900/20' : 'bg-red-50')}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-red-300' : 'text-red-700'}`}>Disponível</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-700'}`}>{formatarMoeda(saldoPrevisto)}</span>
+              </div>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Previsto</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>{formatarMoeda(saldoPrevisto)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Filtros Avançados (mantidos para compatibilidade) */}
       <div className={`rounded-lg sm:rounded-xl shadow-sm p-2.5 sm:p-4 lg:p-6 mb-3 sm:mb-4 lg:mb-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
         <h2 className={`text-sm sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
           <AnimatedIcon>
             <FaSearch className={`${isDark ? 'text-slate-400' : 'text-slate-600'} w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5`} />
           </AnimatedIcon>
-          Filtros
+          Filtros Avançados
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
           <div>
