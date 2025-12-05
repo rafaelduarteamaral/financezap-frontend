@@ -1,4 +1,3 @@
-import { FaUser } from 'react-icons/fa';
 
 interface AvatarProps {
   nome?: string;

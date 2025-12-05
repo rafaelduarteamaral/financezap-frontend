@@ -1,4 +1,4 @@
-import type { Transacao, Estatisticas, Telefone, Filtros, Agendamento } from '../config';
+import type { Filtros } from '../config';
 import { API_BASE_URL } from '../config';
 
 // Função auxiliar para obter token do localStorage
@@ -15,6 +15,9 @@ function getHeaders(): Record<string, string> {
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 Token encontrado, adicionando ao header Authorization');
+  } else {
+    console.warn('⚠️ Token não encontrado no localStorage!');
   }
   
   return headers;
@@ -69,10 +72,20 @@ export const api = {
     
     if (response.status === 401) {
       // Token expirado ou inválido
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_usuario');
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+      const errorMessage = errorData.error || 'Sessão expirada. Por favor, faça login novamente.';
+      
+      // Se o erro menciona que precisa fazer login novamente, limpa tudo
+      if (errorMessage.includes('login novamente') || 
+          errorMessage.includes('campo telefone não encontrado') ||
+          errorMessage.includes('Token inválido')) {
+        console.warn('⚠️ Token inválido detectado na requisição, limpando localStorage');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_usuario');
+        // Não força reload imediato - deixa o componente lidar com isso
+      }
+      
+      throw new Error(errorMessage);
     }
     
     if (!response.ok) {
@@ -209,18 +222,31 @@ export const api = {
   },
 
   async verifyToken(token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    
-    if (response.status === 401) {
-      return { success: false, error: 'Token inválido ou expirado' };
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.status === 401) {
+        return { success: false, error: 'Token inválido ou expirado' };
+      }
+      
+      if (!response.ok) {
+        // Se não for 401, pode ser erro de servidor (500, etc)
+        // Retorna erro mas não remove o token automaticamente
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.error || `Erro ${response.status}` };
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error: any) {
+      // Erro de rede - não remove o token, apenas retorna erro
+      console.error('Erro de rede ao verificar token:', error);
+      return { success: false, error: 'Erro de conexão. Verifique sua internet.' };
     }
-    
-    const data = await response.json();
-    return data;
   },
 
   // Enviar mensagem para salvar contato
@@ -280,6 +306,11 @@ export const api = {
   // Atualizar perfil do usuário
   async atualizarPerfil(dados: { nome: string; email?: string }) {
     const headers = getHeaders();
+    console.log('🔐 Headers para atualizarPerfil:', {
+      hasAuth: !!headers['Authorization'],
+      authPreview: headers['Authorization'] ? headers['Authorization'].substring(0, 20) + '...' : 'N/A',
+      tokenFromStorage: getToken() ? getToken()!.substring(0, 20) + '...' : 'N/A'
+    });
     const response = await fetch(`${API_BASE_URL}/api/auth/perfil`, {
       method: 'PUT',
       headers: {

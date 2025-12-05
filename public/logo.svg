@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Quadrado verde arredondado -->
+  <rect width="512" height="512" rx="96" fill="#10b981"/>
+  
+  <!-- Letra "z" minúscula branca centralizada com curvas suaves -->
+  <g transform="translate(128, 144)">
+    <path
+      d="M64 80h256M64 80l256 256M64 336h256"
+      stroke="white"
+      stroke-width="50"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>
+

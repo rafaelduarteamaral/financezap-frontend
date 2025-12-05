@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { api } from '../services/api';
 
 interface Usuario {
@@ -37,30 +38,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedUsuario = localStorage.getItem('auth_usuario');
 
     if (savedToken && savedUsuario) {
-      // Verifica se o token JWT ainda é válido
+      // Primeiro, define o token e usuário do localStorage para manter a sessão
+      // Isso evita logout imediato se a verificação falhar temporariamente
+      setToken(savedToken);
+      try {
+        const usuarioParsed = JSON.parse(savedUsuario);
+        setUsuario(usuarioParsed);
+        console.log('✅ Token e usuário carregados do localStorage');
+      } catch (e) {
+        console.error('Erro ao parsear usuário do localStorage:', e);
+      }
+      
+      // Depois, verifica se o token JWT ainda é válido (em background)
+      // Mas não bloqueia a UI enquanto verifica
       api.verifyToken(savedToken)
         .then((data) => {
-          if (data.success) {
-            setToken(savedToken);
-            // Atualiza o usuário com os dados mais recentes do servidor
-            setUsuario(data.usuario || JSON.parse(savedUsuario));
-            // Atualiza o localStorage com os dados mais recentes
-            if (data.usuario) {
-              localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
-            }
+          if (data.success && data.usuario) {
+            // Token válido - atualiza dados
+            console.log('✅ Token válido na verificação, atualizando dados do usuário');
+            setUsuario(data.usuario);
+            localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
           } else {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_usuario');
+            // Token inválido - mas mantém sessão local por enquanto
+            console.warn('⚠️ Token inválido na verificação, mas mantendo sessão local');
+            // Não remove o token aqui - deixa as requisições API lidarem com isso
           }
         })
-        .catch(() => {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_usuario');
+        .catch((error) => {
+          // Só remove token se for erro específico de token inválido
+          // Erros de rede não devem remover o token
+          if (error.message?.includes('campo telefone não encontrado') || 
+              error.message?.includes('Token inválido') && error.message?.includes('campo telefone')) {
+            console.warn('❌ Token inválido (formato antigo), removendo');
+            setToken(null);
+            setUsuario(null);
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_usuario');
+          } else {
+            // Erro de rede ou outro - mantém sessão local
+            console.warn('⚠️ Erro ao verificar token (mantendo sessão local):', error.message);
+          }
         })
         .finally(() => {
           setLoading(false);
         });
     } else {
+      console.log('⚠️ Nenhum token ou usuário encontrado no localStorage');
       setLoading(false);
     }
   }, []);
@@ -69,11 +92,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Se o token já foi fornecido (do login com código), usa diretamente
       if (token) {
+        console.log('🔐 Login com token fornecido:', token.substring(0, 20) + '...');
         setToken(token);
+        // Garante que o token está salvo no localStorage
+        localStorage.setItem('auth_token', token);
         const savedUsuario = localStorage.getItem('auth_usuario');
         if (savedUsuario) {
-          setUsuario(JSON.parse(savedUsuario));
+          try {
+            setUsuario(JSON.parse(savedUsuario));
+          } catch (e) {
+            console.error('Erro ao parsear usuário:', e);
+          }
         }
+        console.log('✅ Token salvo no localStorage e estado atualizado');
         return { success: true };
       }
       

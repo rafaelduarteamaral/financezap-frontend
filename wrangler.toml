@@ -1,0 +1,6 @@
+name = "financezap-frontend"
+pages_build_output_dir = "dist"
+
+[env.production]
+vars = { VITE_API_URL = "https://financezap.rafael-damaral.workers.dev" }
+

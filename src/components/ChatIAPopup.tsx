@@ -19,7 +19,7 @@ export function ChatIAPopup({ isDark }: ChatIAPopupProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Olá! 👋 Sou seu assistente do FinanceZap!\n\nPosso ajudá-lo com:\n\n💰 **Finanças:**\n- Analisar seus gastos e receitas\n- Sugerir formas de economizar\n- Ajudar a criar metas financeiras\n- Explicar conceitos financeiros\n\n📱 **Sobre a Plataforma:**\n- Como usar as funcionalidades\n- Como registrar transações\n- Como usar agendamentos\n- Dúvidas sobre o portal\n\nComo posso ajudá-lo hoje? 😊'
+      content: 'Olá! 👋 Sou seu assistente do Zela!\n\nPosso ajudá-lo com:\n\n💰 **Finanças:**\n- Analisar seus gastos e receitas\n- Sugerir formas de economizar\n- Ajudar a criar metas financeiras\n- Explicar conceitos financeiros\n\n📱 **Sobre a Plataforma:**\n- Como usar as funcionalidades\n- Como registrar transações\n- Como usar agendamentos\n- Dúvidas sobre o portal\n\nComo posso ajudá-lo hoje? 😊'
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { AnimatedIcon } from './AnimatedIcon';
+import { Logo } from './Logo';
 import { motion } from 'framer-motion';
-import { FaMoneyBillWave, FaWhatsapp, FaKey, FaUserPlus } from 'react-icons/fa';
+import { FaWhatsapp, FaKey, FaUserPlus } from 'react-icons/fa';
 import { api } from '../services/api';
 import { Cadastro } from './Cadastro';
 
@@ -144,12 +144,10 @@ export function Login() {
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="inline-block mb-4"
             >
-              <AnimatedIcon size={64}>
-                <FaMoneyBillWave className="text-primary-600 dark:text-primary-400" />
-              </AnimatedIcon>
+              <Logo size={64} />
             </motion.div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-              FinanceZap
+              Zela
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
               {etapa === 'telefone' 
