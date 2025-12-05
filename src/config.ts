@@ -1,9 +1,11 @@
 // Configuração da API
-// Usa VITE_API_URL do .env ou fallback para localhost em desenvolvimento
-// Para produção, configure VITE_API_URL no .env.production ou nas variáveis de ambiente do deploy
-// Em produção (usezela.com), usa o backend em api.usezela.com
+// Prioridade:
+// 1. VITE_API_URL do .env.local (desenvolvimento local)
+// 2. VITE_API_URL do .env (configuração padrão)
+// 3. Em produção: https://api.usezela.com
+// 4. Em desenvolvimento sem .env: http://localhost:3000
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD ? 'https://api.usezela.com' : 'http://localhost:3000');
+  (import.meta.env.PROD ? 'https://api.usezela.com' : 'https://api.usezela.com');
 
 // Debug: mostra a URL da API sendo usada (remover em produção)
 if (import.meta.env.DEV) {
