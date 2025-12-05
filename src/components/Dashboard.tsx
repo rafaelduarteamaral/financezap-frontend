@@ -242,19 +242,20 @@ export function Dashboard({
         {/* Gráfico de Status Financeiro - Entradas vs Saídas */}
         <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-base sm:text-lg font-semibold mb-3 sm:mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Status Financeiro</h3>
-          <div className="w-full h-[250px] sm:h-[300px]">
+          <div className="w-full h-[280px] sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={statusFinanceiro}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
+                  labelLine={true}
                   label={(props: any) => {
                     const { name, percent, value } = props;
-                    return `${name}: ${formatarMoeda(value)} (${((percent || 0) * 100).toFixed(0)}%)`;
+                    if (percent === 0) return '';
+                    return `${capitalize(name)}: ${formatarMoeda(value)} (${((percent || 0) * 100).toFixed(0)}%)`;
                   }}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -300,18 +301,19 @@ export function Dashboard({
         {/* Gráfico Crédito vs Débito */}
         <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Crédito vs Débito</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={320}>
             <PieChart>
               <Pie
                 data={creditoDebito}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
+                labelLine={true}
                 label={(props: any) => {
                   const { name, percent, value } = props;
+                  if (percent === 0) return '';
                   return `${capitalize(name)}: ${formatarMoeda(value)} (${((percent || 0) * 100).toFixed(0)}%)`;
                 }}
-                outerRadius={80}
+                outerRadius={70}
                 fill="#8884d8"
                 dataKey="value"
               >
@@ -415,19 +417,19 @@ export function Dashboard({
         {/* Gráfico de Pizza - Top Categorias de Saídas */}
         <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Top 5 Categorias - Saídas</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={320}>
             <PieChart>
               <Pie
                 data={topCategoriasSaidas.length > 0 ? topCategoriasSaidas : [{ name: 'Nenhuma saída', value: 0 }]}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
+                labelLine={true}
                 label={(props: any) => {
                   const { name, percent } = props;
                   if (percent === 0) return '';
                   return `${capitalize(name || '')} ${((percent || 0) * 100).toFixed(0)}%`;
                 }}
-                outerRadius={80}
+                outerRadius={70}
                 fill="#8884d8"
                 dataKey="value"
               >
@@ -446,20 +448,20 @@ export function Dashboard({
         {/* Gráfico de Pizza - Top Categorias de Entradas */}
         <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-base sm:text-lg font-semibold mb-3 sm:mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Top 5 Categorias - Entradas</h3>
-          <div className="w-full h-[250px] sm:h-[300px]">
+          <div className="w-full h-[280px] sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={topCategoriasEntradas.length > 0 ? topCategoriasEntradas : [{ name: 'Nenhuma entrada', value: 0 }]}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
+                  labelLine={true}
                   label={(props: any) => {
                     const { name, percent } = props;
                     if (percent === 0) return '';
-                    return `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`;
+                    return `${capitalize(name || '')} ${((percent || 0) * 100).toFixed(0)}%`;
                   }}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
