@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
+import { useTemplate } from './contexts/TemplateContext';
 import { useToast } from './contexts/ToastContext';
 import { Login } from './components/Login';
 import { api } from './services/api';
@@ -22,6 +23,7 @@ import { InstallPrompt } from './components/InstallPrompt';
 import { ChatIAPopup } from './components/ChatIAPopup';
 import { Agendamentos } from './components/Agendamentos';
 import { Categorias } from './components/Categorias';
+import { Carteiras } from './components/Carteiras';
 import { Configuracoes } from './components/Configuracoes';
 import { Avatar } from './components/Avatar';
 import { Logo } from './components/Logo';
@@ -30,14 +32,14 @@ import { AnimatedIcon } from './components/AnimatedIcon';
 import { ToastContainer } from './components/Toast';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { motion } from 'framer-motion';
-import { aplicarTemplate as aplicarTemplateUtil } from './utils/applyTemplate';
 
 
 function App() {
   const { isAuthenticated, usuario, logout, loading: authLoading, token } = useAuth();
   const { theme } = useTheme();
+  const { templates, templateAtivo, carregando: carregandoTemplates, carregarTemplates, ativarTemplate } = useTemplate();
   const { showSuccess, showError, confirm, toasts, closeToast, confirmOptions, isConfirmOpen, closeConfirm } = useToast();
-  const isDark = theme === 'dark';
+  const isDark = theme === 'dark' || (templateAtivo?.tipo === 'dark');
   
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas | null>(null);
@@ -51,11 +53,9 @@ function App() {
   const [todasCategorias, setTodasCategorias] = useState<string[]>([]);
   // Dados separados para gráficos (todas as transações, sem paginação)
   const [todasTransacoesParaGraficos, setTodasTransacoesParaGraficos] = useState<Transacao[]>([]);
-  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias'>('dashboard');
+  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias' | 'carteiras'>('dashboard');
   const [configuracoesAberto, setConfiguracoesAberto] = useState(false);
   const [templatesDropdownAberto, setTemplatesDropdownAberto] = useState(false);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [carregandoTemplates, setCarregandoTemplates] = useState(false);
 
   // Função para remover duplicatas de transações
   const removerDuplicatas = (transacoes: Transacao[]): Transacao[] => {
@@ -232,89 +232,17 @@ function App() {
     }
   };
 
-  // Função para aplicar template (reutilizável)
-  const aplicarTemplate = (template: any) => {
-    aplicarTemplateUtil(template);
-  };
-
-  // Carrega templates do backend
-  const carregarTemplates = async () => {
-    if (!isAuthenticated || !usuario) return;
-    
-    setCarregandoTemplates(true);
-    try {
-      const response = await api.listarTemplates();
-      if (response.success && response.templates) {
-        setTemplates(response.templates);
-        // Aplica o template ativo
-        const templateAtivo = response.templates.find((t: any) => t.ativo);
-        if (templateAtivo) {
-          aplicarTemplate(templateAtivo);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao carregar templates:', error);
-    } finally {
-      setCarregandoTemplates(false);
-    }
-  };
-
   // Ativa um template
   const handleAtivarTemplate = async (id: number) => {
     try {
-      const templateParaAtivar = templates.find(t => t.id === id);
-      
-      const response = await api.ativarTemplate(id);
-      if (response.success) {
-        // Aplica o template imediatamente
-        if (response.template) {
-          aplicarTemplate({
-            id: response.template.id,
-            nome: response.template.nome,
-            tipo: response.template.tipo,
-            corPrimaria: response.template.corPrimaria,
-            corSecundaria: response.template.corSecundaria,
-            corDestaque: response.template.corDestaque,
-            corFundo: response.template.corFundo,
-            corTexto: response.template.corTexto,
-            ativo: response.template.ativo,
-            criadoEm: ''
-          });
-        } else if (templateParaAtivar) {
-          aplicarTemplate(templateParaAtivar);
-        }
-        
-        // Recarrega templates para atualizar o estado
-        await carregarTemplates();
-        
-        // Fecha o dropdown
-        setTemplatesDropdownAberto(false);
-        
-        showSuccess('Template ativado com sucesso!');
-      } else {
-        throw new Error(response.error || 'Erro ao ativar template');
-      }
+      await ativarTemplate(id);
+      setTemplatesDropdownAberto(false);
+      showSuccess('Template ativado com sucesso!');
     } catch (error: any) {
       console.error('Erro ao ativar template:', error);
       showError(`Erro ao ativar: ${error.message}`);
     }
   };
-
-  // Listener para atualizar quando template mudar
-  useEffect(() => {
-    const handleTemplateChange = () => {
-      // Força re-renderização quando template muda
-      if (templates.length > 0) {
-        const templateAtivo = templates.find((t: any) => t.ativo);
-        if (templateAtivo) {
-          aplicarTemplate(templateAtivo);
-        }
-      }
-    };
-
-    window.addEventListener('templateChanged', handleTemplateChange);
-    return () => window.removeEventListener('templateChanged', handleTemplateChange);
-  }, [templates]);
 
   // TODOS os hooks devem ser chamados ANTES de qualquer return condicional
   // Carrega template ativo quando o usuário faz login
@@ -324,42 +252,9 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, usuario, authLoading]);
-
-  // Limpa e reaplica estilos quando a aba ativa muda
-  // Isso garante que os botões ativos tenham a cor correta
-  useEffect(() => {
-    // Pequeno delay para garantir que o React atualizou as classes
-    const timeout = setTimeout(() => {
-      // Reaplica o template para atualizar cores dos botões
-      if (templates.length > 0) {
-        const templateAtivo = templates.find((t: any) => t.ativo);
-        if (templateAtivo) {
-          aplicarTemplate(templateAtivo);
-          // Reaplica novamente após mais um delay para elementos renderizados dinamicamente
-          setTimeout(() => {
-            aplicarTemplate(templateAtivo);
-          }, 200);
-        }
-      }
-    }, 10);
-    
-    return () => clearTimeout(timeout);
-  }, [abaAtiva, templates]);
   
-  // Reaplica template quando transações são carregadas (garante que cards sejam atualizados)
-  useEffect(() => {
-    if (templates.length > 0 && transacoes.length > 0) {
-      const templateAtivo = templates.find((t: any) => t.ativo);
-      if (templateAtivo && (templateAtivo.tipo === 'light' || templateAtivo.tipo === 'custom')) {
-        // Delay para garantir que React terminou de renderizar os cards
-        const timeout = setTimeout(() => {
-          aplicarTemplate(templateAtivo);
-        }, 300);
-        
-        return () => clearTimeout(timeout);
-      }
-    }
-  }, [transacoes, templates]);
+  // O TemplateContext agora usa MutationObserver para detectar mudanças no DOM
+  // Não precisamos mais reaplicar manualmente aqui
 
   // Fecha dropdown quando clica fora
   useEffect(() => {
@@ -559,9 +454,6 @@ function App() {
       setPaginaAtual(pagina);
     }
   };
-
-  // Encontra o template ativo para determinar qual ícone mostrar
-  const templateAtivo = templates.find((t: any) => t.ativo);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -809,6 +701,22 @@ function App() {
                 >
                   Categorias
                 </motion.button>
+                <motion.button
+                  onClick={() => setAbaAtiva('carteiras')}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+              className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-[11px] sm:text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                    abaAtiva === 'carteiras'
+                      ? isDark
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-primary-600 text-white'
+                      : isDark
+                      ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Carteiras
+                </motion.button>
               </div>
           
           {/* Informações adicionais - apenas em desktop grande */}
@@ -970,7 +878,6 @@ function App() {
         {/* Conteúdo baseado na aba ativa */}
         {(() => {
           // Verifica se há template custom ativo - se sim, não usa isDark
-          const templateAtivo = templates.find((t: any) => t.ativo);
           const usarIsDark = !templateAtivo || templateAtivo.tipo !== 'custom';
           const isDarkParaComponentes = usarIsDark ? isDark : false;
           
@@ -978,6 +885,8 @@ function App() {
             <Agendamentos isDark={isDarkParaComponentes} />
           ) : abaAtiva === 'categorias' ? (
             <Categorias isDark={isDarkParaComponentes} />
+          ) : abaAtiva === 'carteiras' ? (
+            <Carteiras isDark={isDarkParaComponentes} />
           ) : (
             <Dashboard
               isDark={isDarkParaComponentes}

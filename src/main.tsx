@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
+import { TemplateProvider } from './contexts/TemplateContext.tsx'
 import { ToastProvider } from './contexts/ToastContext.tsx'
 
 // Registrar Service Worker para PWA
@@ -24,7 +25,9 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <App />
+          <TemplateProvider>
+            <App />
+          </TemplateProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

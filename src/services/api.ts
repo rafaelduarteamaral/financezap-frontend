@@ -33,6 +33,7 @@ export const api = {
     metodo: 'credito' | 'debito';
     dataHora?: string;
     data?: string;
+    carteiraId?: number | null;
   }) {
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/transacoes`, {
@@ -741,6 +742,159 @@ export const api = {
   async removerCategoria(id: number) {
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/categorias/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Carteiras - Buscar todas
+  async buscarCarteiras() {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/carteiras`, {
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Carteiras - Buscar padrão
+  async buscarCarteiraPadrao() {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/carteiras/padrao`, {
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Carteiras - Criar
+  async criarCarteira(dados: { nome: string; descricao?: string; padrao?: boolean }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/carteiras`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Carteiras - Atualizar
+  async atualizarCarteira(id: number, dados: { nome?: string; descricao?: string; padrao?: boolean; ativo?: boolean }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/carteiras/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Carteiras - Definir como padrão
+  async definirCarteiraPadrao(id: number) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/carteiras/${id}/padrao`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Carteiras - Remover
+  async removerCarteira(id: number) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/carteiras/${id}`, {
       method: 'DELETE',
       headers,
     });

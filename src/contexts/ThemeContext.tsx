@@ -44,8 +44,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Escuta mudanças de tema vindas de templates
   useEffect(() => {
     const handleThemeChange = (event: CustomEvent) => {
-      const newTheme = event.detail.theme as Theme;
-      if (newTheme !== theme) {
+      const newTheme = event.detail?.theme as Theme;
+      if (newTheme && newTheme !== theme) {
         setTheme(newTheme);
       }
     };
@@ -54,6 +54,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     return () => {
       window.removeEventListener('themeChanged', handleThemeChange as EventListener);
+    };
+  }, [theme]);
+  
+  // Sincroniza com template ativo quando disponível
+  useEffect(() => {
+    const handleTemplateChange = (event: CustomEvent) => {
+      const template = event.detail?.template;
+      if (template) {
+        // Se o template é dark ou light, sincroniza com o theme
+        if (template.tipo === 'dark' && theme !== 'dark') {
+          setTheme('dark');
+        } else if (template.tipo === 'light' && theme !== 'light') {
+          setTheme('light');
+        }
+        // Para custom, mantém o theme atual
+      }
+    };
+
+    window.addEventListener('templateChanged', handleTemplateChange as EventListener);
+    return () => {
+      window.removeEventListener('templateChanged', handleTemplateChange as EventListener);
     };
   }, [theme]);
   

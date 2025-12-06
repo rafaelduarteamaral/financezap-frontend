@@ -21,6 +21,8 @@ export function ModalFormularioTransacao({
 }: ModalFormularioTransacaoProps) {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
+  const [carteiras, setCarteiras] = useState<Array<{ id: number; nome: string; padrao: boolean }>>([]);
+  const [carteiraPadrao, setCarteiraPadrao] = useState<number | null>(null);
   
   // Função para obter data/hora atual no formato datetime-local (YYYY-MM-DDTHH:mm)
   const getDataHoraAtual = () => {
@@ -48,7 +50,37 @@ export function ModalFormularioTransacao({
     tipo: 'saida' as 'entrada' | 'saida',
     metodo: 'debito' as 'credito' | 'debito',
     dataHora: getDataHoraAtual(),
+    carteiraId: null as number | null,
   });
+
+  // Carrega carteiras quando o modal abre
+  useEffect(() => {
+    if (isOpen) {
+      const carregarCarteiras = async () => {
+        try {
+          const response = await api.buscarCarteiras();
+          if (response.success && response.carteiras) {
+            const carteirasAtivas = response.carteiras.filter((c: any) => c.ativo);
+            setCarteiras(carteirasAtivas);
+            
+            // Encontra a carteira padrão
+            const padrao = carteirasAtivas.find((c: any) => c.padrao);
+            if (padrao) {
+              setCarteiraPadrao(padrao.id);
+              setFormData(prev => ({ ...prev, carteiraId: padrao.id }));
+            } else if (carteirasAtivas.length > 0) {
+              // Se não houver padrão, usa a primeira
+              setCarteiraPadrao(carteirasAtivas[0].id);
+              setFormData(prev => ({ ...prev, carteiraId: carteirasAtivas[0].id }));
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao carregar carteiras:', error);
+        }
+      };
+      carregarCarteiras();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,6 +97,7 @@ export function ModalFormularioTransacao({
         tipo: 'saida',
         metodo: 'debito',
         dataHora: getDataHoraAtual(),
+        carteiraId: carteiraPadrao,
       });
     }
   }, [isOpen, categorias]);
@@ -97,6 +130,7 @@ export function ModalFormularioTransacao({
         metodo: formData.metodo,
         data: dataFormatada,
         dataHora: dataHoraFormatada,
+        carteiraId: formData.carteiraId,
       };
       
       console.log('📤 Enviando transação:', dadosTransacao);
@@ -316,6 +350,39 @@ export function ModalFormularioTransacao({
                     )}
                   </select>
                 </div>
+
+                {/* Carteira */}
+                {carteiras.length > 0 && (
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        isDark ? 'text-slate-300' : 'text-slate-700'
+                      }`}
+                    >
+                      Carteira
+                    </label>
+                    <select
+                      value={formData.carteiraId || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, carteiraId: e.target.value ? parseInt(e.target.value) : null })
+                      }
+                      className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                        isDark
+                          ? 'border-slate-600 bg-slate-700 text-white'
+                          : 'border-slate-300 bg-white text-slate-900'
+                      }`}
+                    >
+                      {carteiras.map((carteira) => (
+                        <option key={carteira.id} value={carteira.id}>
+                          {carteira.nome} {carteira.padrao ? '(Padrão)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Se não selecionar, será usada a carteira padrão
+                    </p>
+                  </div>
+                )}
 
                 {/* Data e Hora */}
                 <div>
