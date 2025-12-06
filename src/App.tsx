@@ -335,12 +335,31 @@ function App() {
         const templateAtivo = templates.find((t: any) => t.ativo);
         if (templateAtivo) {
           aplicarTemplate(templateAtivo);
+          // Reaplica novamente após mais um delay para elementos renderizados dinamicamente
+          setTimeout(() => {
+            aplicarTemplate(templateAtivo);
+          }, 200);
         }
       }
     }, 10);
     
     return () => clearTimeout(timeout);
   }, [abaAtiva, templates]);
+  
+  // Reaplica template quando transações são carregadas (garante que cards sejam atualizados)
+  useEffect(() => {
+    if (templates.length > 0 && transacoes.length > 0) {
+      const templateAtivo = templates.find((t: any) => t.ativo);
+      if (templateAtivo && (templateAtivo.tipo === 'light' || templateAtivo.tipo === 'custom')) {
+        // Delay para garantir que React terminou de renderizar os cards
+        const timeout = setTimeout(() => {
+          aplicarTemplate(templateAtivo);
+        }, 300);
+        
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [transacoes, templates]);
 
   // Fecha dropdown quando clica fora
   useEffect(() => {
@@ -545,20 +564,20 @@ function App() {
   const templateAtivo = templates.find((t: any) => t.ativo);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${theme === 'dark' ? 'from-slate-900 to-slate-800' : 'from-slate-50 to-slate-100'}`}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Prompt de Instalação PWA */}
       <InstallPrompt />
       
       {/* Header */}
-      <header className={`shadow-sm border-b ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+      <header className="shadow-sm border-b bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-3 lg:py-6">
           {/* Linha superior: Logo e ações */}
           <div className="flex items-center justify-between mb-2 sm:mb-3 lg:mb-4 gap-1.5 sm:gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-1 min-w-0">
               <Logo size={36} className="sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" />
               <div className="min-w-0 flex-1">
-                <h1 className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Zela</h1>
-                <p className={`text-[9px] sm:text-xs lg:text-sm mt-0.5 hidden sm:block ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>Dashboard Administrativo</p>
+                <h1 className="text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate text-slate-900 dark:text-white">Zela</h1>
+                <p className="text-[9px] sm:text-xs lg:text-sm mt-0.5 hidden sm:block text-slate-600 dark:text-slate-400">Dashboard Administrativo</p>
               </div>
             </div>
             
@@ -570,15 +589,15 @@ function App() {
                   onClick={() => setTemplatesDropdownAberto(!templatesDropdownAberto)}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className={`p-1 sm:p-1.5 lg:p-2 rounded-lg transition-colors flex-shrink-0 ${theme === 'dark' ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${templatesDropdownAberto ? 'ring-2 ring-primary-500' : ''}`}
+                  className={`p-1 sm:p-1.5 lg:p-2 rounded-lg transition-colors flex-shrink-0 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 ${templatesDropdownAberto ? 'ring-2 ring-primary-500' : ''}`}
                   title="Escolher template de cores"
                 >
                   {templateAtivo && templateAtivo.tipo === 'custom' ? (
                     <FaPalette size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                  ) : theme === 'light' ? (
-                    <FaMoon size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                  ) : (
+                  ) : templateAtivo && templateAtivo.tipo === 'dark' ? (
                     <FaSun size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                  ) : (
+                    <FaMoon size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
                   )}
                 </motion.button>
 
@@ -625,24 +644,35 @@ function App() {
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  {/* Preview das cores */}
-                                  <div className="flex gap-1 flex-shrink-0">
-                                    <div
-                                      className="w-4 h-4 rounded border"
-                                      style={{ backgroundColor: template.corPrimaria }}
-                                      title="Primária"
-                                    />
-                                    <div
-                                      className="w-4 h-4 rounded border"
-                                      style={{ backgroundColor: template.corSecundaria }}
-                                      title="Secundária"
-                                    />
-                                    <div
-                                      className="w-4 h-4 rounded border"
-                                      style={{ backgroundColor: template.corDestaque }}
-                                      title="Destaque"
-                                    />
-                                  </div>
+                                  {/* Preview das cores apenas para templates personalizados */}
+                                  {template.tipo === 'custom' ? (
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      <div
+                                        className="w-4 h-4 rounded border"
+                                        style={{ backgroundColor: template.corPrimaria }}
+                                        title="Primária"
+                                      />
+                                      <div
+                                        className="w-4 h-4 rounded border"
+                                        style={{ backgroundColor: template.corSecundaria }}
+                                        title="Secundária"
+                                      />
+                                      <div
+                                        className="w-4 h-4 rounded border"
+                                        style={{ backgroundColor: template.corDestaque }}
+                                        title="Destaque"
+                                      />
+                                    </div>
+                                  ) : (
+                                    /* Ícone para templates padrão */
+                                    <div className="flex-shrink-0">
+                                      {template.tipo === 'dark' ? (
+                                        <FaMoon size={14} className="text-slate-600 dark:text-slate-300" />
+                                      ) : (
+                                        <FaSun size={14} className="text-slate-600 dark:text-slate-300" />
+                                      )}
+                                    </div>
+                                  )}
                                   <span className={`text-sm font-medium truncate ${
                                     template.ativo
                                       ? isDark ? 'text-white' : 'text-slate-900'
@@ -817,19 +847,19 @@ function App() {
               <div className="flex items-center gap-2 sm:gap-3 flex-1">
                 <div className="flex-shrink-0">
                   {usuario.diasRestantesTrial <= 3 ? (
-                    <FaExclamationTriangle className={`${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} size={14} />
+                    <FaExclamationTriangle className="text-slate-900 dark:text-white" size={14} />
                   ) : (
-                    <FaGift className={`${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} size={14} />
+                    <FaGift className="text-slate-900 dark:text-white" size={14} />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm sm:text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                  <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-white">
                     {usuario.diasRestantesTrial <= 3
                       ? `Seu trial expira em ${usuario.diasRestantesTrial} ${usuario.diasRestantesTrial === 1 ? 'dia' : 'dias'}!`
                       : `Trial ativo: ${usuario.diasRestantesTrial} ${usuario.diasRestantesTrial === 1 ? 'dia restante' : 'dias restantes'}`
                     }
                   </p>
-                  <p className={`text-xs sm:text-sm mt-1 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className="text-xs sm:text-sm mt-1 text-slate-600 dark:text-slate-300">
                     {usuario.diasRestantesTrial <= 3
                       ? 'Assine um plano para continuar usando o sistema após o período de trial.'
                       : 'Após o período de trial, você precisará assinar um plano para continuar.'
@@ -938,13 +968,19 @@ function App() {
         )}
 
         {/* Conteúdo baseado na aba ativa */}
-        {abaAtiva === 'agendamentos' ? (
-          <Agendamentos isDark={isDark} />
-        ) : abaAtiva === 'categorias' ? (
-          <Categorias isDark={isDark} />
-        ) : (
-          <Dashboard
-            isDark={isDark}
+        {(() => {
+          // Verifica se há template custom ativo - se sim, não usa isDark
+          const templateAtivo = templates.find((t: any) => t.ativo);
+          const usarIsDark = !templateAtivo || templateAtivo.tipo !== 'custom';
+          const isDarkParaComponentes = usarIsDark ? isDark : false;
+          
+          return abaAtiva === 'agendamentos' ? (
+            <Agendamentos isDark={isDarkParaComponentes} />
+          ) : abaAtiva === 'categorias' ? (
+            <Categorias isDark={isDarkParaComponentes} />
+          ) : (
+            <Dashboard
+              isDark={isDarkParaComponentes}
             filtros={filtros}
             setFiltros={setFiltros}
             todasCategorias={todasCategorias}
@@ -961,8 +997,9 @@ function App() {
             setItensPorPagina={setItensPorPagina}
             irParaPagina={irParaPagina}
             handleExcluirTransacao={handleExcluirTransacao}
-                />
-        )}
+          />
+          );
+        })()}
 
         {/* Chat de IA - Agora é um popup flutuante */}
         <ChatIAPopup isDark={isDark} />

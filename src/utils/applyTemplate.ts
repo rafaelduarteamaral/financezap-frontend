@@ -42,6 +42,27 @@ export function gerarTons(corBase: string) {
 export function aplicarTemplate(template: Template | any) {
   const root = document.documentElement;
   
+  // Aplica/remove classe dark no elemento raiz para templates padrão
+  // Isso é essencial para o Tailwind aplicar os estilos dark mode
+  if (template.tipo === 'dark') {
+    root.classList.add('dark');
+    // Atualiza localStorage para sincronizar com ThemeContext
+    localStorage.setItem('theme', 'dark');
+    // Dispara evento customizado para atualizar ThemeContext
+    window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: 'dark' } }));
+  } else if (template.tipo === 'light') {
+    root.classList.remove('dark');
+    // Atualiza localStorage para sincronizar com ThemeContext
+    localStorage.setItem('theme', 'light');
+    // Dispara evento customizado para atualizar ThemeContext
+    window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: 'light' } }));
+  } else if (template.tipo === 'custom') {
+    // Para templates custom, REMOVE a classe dark para que os estilos inline funcionem
+    root.classList.remove('dark');
+    // Não atualiza o localStorage para não interferir com o ThemeContext
+    // Os estilos customizados serão aplicados via inline styles
+  }
+  
   // Gera tons da cor primária
   const tonsPrimaria = gerarTons(template.corPrimaria);
   
@@ -128,12 +149,15 @@ export function aplicarTemplate(template: Template | any) {
   // Aplica no elemento raiz (div principal)
   const appRoot = document.querySelector('[class*="min-h-screen"]') as HTMLElement;
   if (appRoot) {
-    if (usarCoresSlatePadrao) {
-      // Para dark/light, remove estilos inline e deixa o Tailwind gerenciar
+    if (template.tipo === 'dark') {
+      // Para dark, remove estilos inline e deixa o Tailwind gerenciar
       appRoot.style.removeProperty('background');
+    } else if (template.tipo === 'light') {
+      // Para light, aplica gradiente claro
+      appRoot.style.setProperty('background', 'linear-gradient(to bottom right, #f8fafc, #f1f5f9)', 'important');
     } else {
       // Para custom, aplica gradiente do template
-      appRoot.style.setProperty('background', `linear-gradient(to bottom right, ${tonsFundo[50]}, ${tonsFundo[100]})`);
+      appRoot.style.setProperty('background', `linear-gradient(to bottom right, ${tonsFundo[50]}, ${tonsFundo[100]})`, 'important');
     }
   }
   
@@ -232,10 +256,10 @@ export function aplicarTemplate(template: Template | any) {
   // Aplica estilos inline em elementos com classes slate-* (fundo e menus)
   // Apenas para templates customizados - templates dark/light mantêm cores padrão
   try {
-    // Se for template dark/light, remove estilos inline e não aplica novos
-    if (usarCoresSlatePadrao) {
+    // Se for template dark, remove estilos inline e não aplica novos (deixa Tailwind gerenciar)
+    if (template.tipo === 'dark') {
       // Remove estilos inline que possam ter sido aplicados anteriormente
-      const elementosSlate = document.querySelectorAll('[class*="slate-"]');
+      const elementosSlate = document.querySelectorAll('[class*="slate-"], [class*="dark:"], [class*="bg-black"], [class*="bg-white"]');
       elementosSlate.forEach((el) => {
         const htmlEl = el as HTMLElement;
         if (htmlEl) {
@@ -246,9 +270,12 @@ export function aplicarTemplate(template: Template | any) {
         }
       });
     } else {
-      // Para templates customizados, aplica estilos inline
-      // Seleciona elementos com classes slate-*
-      const elementosSlate = document.querySelectorAll('[class*="slate-"]');
+      // Para light e custom, aplica estilos inline para sobrescrever classes dark:*
+      // Isso garante que mesmo com a classe dark removida, elementos com classes dark:* sejam atualizados
+      // Seleciona TODOS os elementos que podem ter classes slate-*, dark:*, bg-black, etc.
+      // Isso inclui elementos com classes condicionais baseadas em isDark
+      // IMPORTANTE: Seleciona também elementos dentro de main, section, div, etc.
+      const elementosSlate = document.querySelectorAll('main [class*="slate-"], main [class*="dark:"], main [class*="bg-black"], main [class*="bg-white"], [class*="slate-"], [class*="dark:"], [class*="bg-black"], [class*="bg-white"]');
       elementosSlate.forEach((el) => {
         const htmlEl = el as HTMLElement;
         if (!htmlEl || !htmlEl.classList) return;
@@ -256,38 +283,246 @@ export function aplicarTemplate(template: Template | any) {
         const classes = Array.from(htmlEl.classList);
         
         classes.forEach((cls: string) => {
-          // Background colors
-          if (cls.includes('bg-slate-')) {
+          // Background colors - bg-slate-*
+          if (cls.includes('bg-slate-') && !cls.includes('dark:')) {
             const match = cls.match(/bg-slate-(\d+)/);
             if (match) {
-                        const ton = match[1] as keyof typeof tonsFundo;
-                        const cor = tonsFundo[ton] || template.corFundo;
-              htmlEl.style.backgroundColor = cor;
+              const ton = match[1];
+              let cor: string;
+              if (template.tipo === 'light') {
+                // Para light, mapeia tons escuros para tons claros
+                const mapeamentoLight: { [key: string]: string } = {
+                  '800': '#ffffff',
+                  '700': '#f1f5f9',
+                  '600': '#e2e8f0',
+                  '500': '#cbd5e1',
+                  '400': '#94a3b8',
+                  '300': '#cbd5e1',
+                  '200': '#e2e8f0',
+                  '100': '#f1f5f9',
+                  '50': '#f8fafc'
+                };
+                cor = mapeamentoLight[ton] || '#ffffff';
+              } else {
+                // Para custom, usa tons do template
+                const tonKey = ton as keyof typeof tonsFundo;
+                cor = tonsFundo[tonKey] || template.corFundo;
+              }
+              htmlEl.style.setProperty('background-color', cor, 'important');
             } else if (cls.includes('bg-white')) {
-              htmlEl.style.backgroundColor = template.corFundo;
+              const cor = template.tipo === 'light' ? '#ffffff' : template.corFundo;
+              htmlEl.style.setProperty('background-color', cor, 'important');
             }
           }
           
+          // Background colors - dark:bg-slate-* (aplica mesmo sem classe dark)
+          // Para light, usa cores claras; para custom, usa tons do template
+          if (cls.includes('dark:bg-slate-')) {
+            const match = cls.match(/dark:bg-slate-(\d+)/);
+            if (match) {
+              const ton = match[1];
+              let cor: string;
+              if (template.tipo === 'light') {
+                // Para light, mapeia tons escuros para tons claros
+                const mapeamentoLight: { [key: string]: string } = {
+                  '800': '#ffffff',
+                  '700': '#f1f5f9',
+                  '600': '#e2e8f0',
+                  '500': '#cbd5e1',
+                  '400': '#94a3b8',
+                  '300': '#cbd5e1',
+                  '200': '#e2e8f0',
+                  '100': '#f1f5f9',
+                  '50': '#f8fafc'
+                };
+                cor = mapeamentoLight[ton] || '#ffffff';
+              } else {
+                // Para custom, usa tons do template
+                const tonKey = ton as keyof typeof tonsFundo;
+                cor = tonsFundo[tonKey] || template.corFundo;
+              }
+              htmlEl.style.setProperty('background-color', cor, 'important');
+            }
+          }
+          
+          // Background colors - dark:bg-white
+          if (cls.includes('dark:bg-white')) {
+            const cor = template.tipo === 'light' ? '#ffffff' : (tonsFundo[50] || template.corFundo);
+            htmlEl.style.setProperty('background-color', cor, 'important');
+          }
+          
+          // Background colors - bg-black/50, bg-black/30, etc. (overlays de modais)
+          // Aplica cor de fundo do template com opacidade
+          if (cls.includes('bg-black/')) {
+            const match = cls.match(/bg-black\/(\d+)/);
+            if (match) {
+              const opacity = parseFloat(match[1]) / 100; // Converte 50 para 0.5
+              // Converte cor hex para rgba
+              const hex = template.corFundo.replace('#', '');
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+              const corComOpacidade = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+              htmlEl.style.setProperty('background-color', corComOpacidade, 'important');
+            } else if (cls === 'bg-black') {
+              // bg-black sem opacidade - usa cor de fundo do template
+              htmlEl.style.setProperty('background-color', template.corFundo, 'important');
+            }
+          }
+          
+          // Background colors - dark:bg-black (aplica mesmo sem classe dark)
+          if (cls.includes('dark:bg-black')) {
+            htmlEl.style.setProperty('background-color', template.corFundo, 'important');
+          }
+          
           // Text colors
-          if (cls.includes('text-slate-')) {
+          if (cls.includes('text-slate-') && !cls.includes('dark:')) {
             const match = cls.match(/text-slate-(\d+)/);
             if (match) {
               const ton = match[1];
-              // Tons mais claros (50-400) usam cor de texto clara, tons escuros (500+) usam cor de texto escura
-              const cor = parseInt(ton) < 500 
-                ? tonsTexto[50] || template.corTexto 
-                : template.corTexto;
-              htmlEl.style.color = cor;
+              let cor: string;
+              if (template.tipo === 'light') {
+                // Para light, mapeia tons claros para tons escuros
+                const mapeamentoLight: { [key: string]: string } = {
+                  '50': '#0f172a',
+                  '100': '#1e293b',
+                  '200': '#334155',
+                  '300': '#475569',
+                  '400': '#64748b',
+                  '500': '#64748b',
+                  '600': '#475569',
+                  '700': '#334155',
+                  '800': '#1e293b',
+                  '900': '#0f172a'
+                };
+                cor = mapeamentoLight[ton] || '#0f172a';
+              } else {
+                // Para custom, usa cor de texto do template
+                cor = parseInt(ton) < 500 
+                  ? tonsTexto[50] || template.corTexto 
+                  : template.corTexto;
+              }
+              htmlEl.style.setProperty('color', cor, 'important');
+            }
+          }
+          
+          // Também aplica para classes dark:text-slate-* quando template é light ou custom
+          if (cls.includes('dark:text-slate-') || cls.includes('dark:text-white') || cls.includes('dark:text-')) {
+            const match = cls.match(/dark:text-slate-(\d+)/);
+            let cor: string;
+            if (match) {
+              const ton = match[1];
+              if (template.tipo === 'light') {
+                // Para light, mapeia tons claros para tons escuros
+                const mapeamentoLight: { [key: string]: string } = {
+                  '50': '#0f172a',
+                  '100': '#1e293b',
+                  '200': '#334155',
+                  '300': '#475569',
+                  '400': '#64748b',
+                  '500': '#64748b',
+                  '600': '#475569',
+                  '700': '#334155',
+                  '800': '#1e293b',
+                  '900': '#0f172a'
+                };
+                cor = mapeamentoLight[ton] || '#0f172a';
+              } else {
+                // Para custom, usa cor de texto do template
+                cor = parseInt(ton) < 500 
+                  ? tonsTexto[50] || template.corTexto 
+                  : template.corTexto;
+              }
+              htmlEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('dark:text-white')) {
+              cor = template.tipo === 'light' ? '#0f172a' : template.corTexto;
+              htmlEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('dark:text-')) {
+              // Para outras classes dark:text-*, aplica cor baseada no tipo
+              cor = template.tipo === 'light' ? '#0f172a' : template.corTexto;
+              htmlEl.style.setProperty('color', cor, 'important');
+            }
+          }
+          
+          // Background colors - outras classes dark:bg-* (dark:bg-red-900/20, etc.)
+          if (cls.includes('dark:bg-') && !cls.includes('dark:bg-slate-') && !cls.includes('dark:bg-white') && !cls.includes('dark:bg-black')) {
+            // Para outras classes dark:bg-*, aplica cor de fundo do template com opacidade se houver
+            const opacityMatch = cls.match(/dark:bg-\w+\/(\d+)/);
+            if (opacityMatch) {
+              const opacity = parseFloat(opacityMatch[1]) / 100;
+              // Converte cor hex para rgba
+              const hex = template.corFundo.replace('#', '');
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+              const corComOpacidade = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+              htmlEl.style.setProperty('background-color', corComOpacidade, 'important');
+            } else {
+              htmlEl.style.setProperty('background-color', template.corFundo, 'important');
             }
           }
           
           // Border colors
-          if (cls.includes('border-slate-')) {
+          if (cls.includes('border-slate-') && !cls.includes('dark:')) {
             const match = cls.match(/border-slate-(\d+)/);
             if (match) {
-                        const ton = match[1] as keyof typeof tonsFundo;
-                        const cor = tonsFundo[ton] || template.corFundo;
-              htmlEl.style.borderColor = cor;
+              const ton = match[1];
+              let cor: string;
+              if (template.tipo === 'light') {
+                // Para light, mapeia tons escuros para tons claros
+                const mapeamentoLight: { [key: string]: string } = {
+                  '800': '#e2e8f0',
+                  '700': '#cbd5e1',
+                  '600': '#94a3b8',
+                  '500': '#64748b',
+                  '400': '#94a3b8',
+                  '300': '#cbd5e1',
+                  '200': '#e2e8f0',
+                  '100': '#f1f5f9',
+                  '50': '#f8fafc'
+                };
+                cor = mapeamentoLight[ton] || '#e2e8f0';
+              } else {
+                // Para custom, usa tons do template
+                const tonKey = ton as keyof typeof tonsFundo;
+                if (ton === '700' || ton === '800') {
+                  cor = tonsFundo[700] || tonsFundo[800] || template.corFundo;
+                } else if (ton === '200' || ton === '300') {
+                  cor = tonsFundo[200] || tonsFundo[300] || template.corFundo;
+                } else {
+                  cor = tonsFundo[tonKey] || template.corFundo;
+                }
+              }
+              htmlEl.style.setProperty('border-color', cor, 'important');
+            }
+          }
+          
+          // Também aplica para classes dark:border-slate-* quando template é light ou custom
+          if (cls.includes('dark:border-slate-')) {
+            const match = cls.match(/dark:border-slate-(\d+)/);
+            if (match) {
+              const ton = match[1];
+              let cor: string;
+              if (template.tipo === 'light') {
+                // Para light, mapeia tons escuros para tons claros
+                const mapeamentoLight: { [key: string]: string } = {
+                  '800': '#e2e8f0',
+                  '700': '#cbd5e1',
+                  '600': '#94a3b8',
+                  '500': '#64748b',
+                  '400': '#94a3b8',
+                  '300': '#cbd5e1',
+                  '200': '#e2e8f0',
+                  '100': '#f1f5f9',
+                  '50': '#f8fafc'
+                };
+                cor = mapeamentoLight[ton] || '#e2e8f0';
+              } else {
+                // Para custom, usa tons do template
+                const tonKey = ton as keyof typeof tonsFundo;
+                cor = tonsFundo[tonKey] || template.corFundo;
+              }
+              htmlEl.style.setProperty('border-color', cor, 'important');
             }
           }
           
@@ -311,20 +546,21 @@ export function aplicarTemplate(template: Template | any) {
     // Atualiza elementos específicos - Header e todos os seus elementos
     const header = document.querySelector('header') as HTMLElement;
     if (header) {
-      if (usarCoresSlatePadrao) {
-        // Para dark/light, remove estilos inline e deixa o Tailwind gerenciar
+      if (template.tipo === 'dark') {
+        // Para dark, remove estilos inline e deixa o Tailwind gerenciar
         header.style.removeProperty('background-color');
         header.style.removeProperty('border-color');
       } else {
-        // Para custom, aplica cores do template
-        const headerBg = template.tipo === 'dark' ? tonsFundo[800] : tonsFundo[50];
-        header.style.backgroundColor = headerBg || template.corFundo;
-        header.style.borderColor = template.tipo === 'dark' ? tonsFundo[700] : tonsFundo[200];
+        // Para light e custom, aplica cores do template
+        const headerBg = template.tipo === 'light' ? '#ffffff' : (tonsFundo[50] || template.corFundo);
+        header.style.setProperty('background-color', headerBg, 'important');
+        const headerBorder = template.tipo === 'light' ? '#e2e8f0' : (tonsFundo[200] || template.corFundo);
+        header.style.setProperty('border-color', headerBorder, 'important');
       }
       
       // Atualiza todos os elementos dentro do header (incluindo filhos aninhados)
-      // Apenas para templates customizados - templates dark/light mantêm cores padrão
-      if (!usarCoresSlatePadrao) {
+      // Para templates light e custom, aplica estilos inline para garantir que não usem cores dark
+      if (template.tipo === 'light' || template.tipo === 'custom') {
         const headerChildren = header.querySelectorAll('*');
         headerChildren.forEach((child) => {
           const childEl = child as HTMLElement;
@@ -343,44 +579,60 @@ export function aplicarTemplate(template: Template | any) {
           classes.forEach((cls: string) => {
             // Backgrounds - mapeia classes slate para tons do template
             // Aplica apenas em elementos inativos (sem bg-primary-*)
-            if (cls.includes('bg-slate-800')) {
-              childEl.style.backgroundColor = tonsFundo[800] || template.corFundo;
-            } else if (cls.includes('bg-slate-700')) {
-              childEl.style.backgroundColor = tonsFundo[700] || template.corFundo;
-            } else if (cls.includes('bg-slate-600')) {
-              childEl.style.backgroundColor = tonsFundo[600] || template.corFundo;
-            } else if (cls.includes('bg-slate-100')) {
-              childEl.style.backgroundColor = tonsFundo[100] || template.corFundo;
-            } else if (cls.includes('bg-slate-50')) {
-              childEl.style.backgroundColor = tonsFundo[50] || template.corFundo;
-            } else if (cls.includes('bg-white')) {
-              childEl.style.backgroundColor = template.tipo === 'dark' ? tonsFundo[800] : tonsFundo[50];
-            } else if (cls.includes('bg-slate-200')) {
-              childEl.style.backgroundColor = tonsFundo[200] || template.corFundo;
+            if (cls.includes('bg-slate-800') || cls.includes('dark:bg-slate-800')) {
+              const cor = template.tipo === 'light' ? '#ffffff' : (tonsFundo[800] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
+            } else if (cls.includes('bg-slate-700') || cls.includes('dark:bg-slate-700')) {
+              const cor = template.tipo === 'light' ? '#f1f5f9' : (tonsFundo[700] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
+            } else if (cls.includes('bg-slate-600') || cls.includes('dark:bg-slate-600')) {
+              const cor = template.tipo === 'light' ? '#e2e8f0' : (tonsFundo[600] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
+            } else if (cls.includes('bg-slate-100') || cls.includes('dark:bg-slate-100')) {
+              const cor = template.tipo === 'light' ? '#f1f5f9' : (tonsFundo[100] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
+            } else if (cls.includes('bg-slate-50') || cls.includes('dark:bg-slate-50')) {
+              const cor = template.tipo === 'light' ? '#f8fafc' : (tonsFundo[50] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
+            } else if (cls.includes('bg-white') || cls.includes('dark:bg-white')) {
+              const cor = template.tipo === 'light' ? '#ffffff' : (tonsFundo[50] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
+            } else if (cls.includes('bg-slate-200') || cls.includes('dark:bg-slate-200')) {
+              const cor = template.tipo === 'light' ? '#e2e8f0' : (tonsFundo[200] || template.corFundo);
+              childEl.style.setProperty('background-color', cor, 'important');
             }
             
-            // Text colors
-            if (cls.includes('text-white')) {
-              childEl.style.color = template.corTexto;
-            } else if (cls.includes('text-slate-900')) {
-              childEl.style.color = template.corTexto;
-            } else if (cls.includes('text-slate-700')) {
-              childEl.style.color = template.corTexto;
-            } else if (cls.includes('text-slate-600')) {
-              childEl.style.color = template.tipo === 'dark' ? tonsTexto[300] : template.corTexto;
-            } else if (cls.includes('text-slate-400')) {
-              childEl.style.color = template.tipo === 'dark' ? tonsTexto[300] : template.corTexto;
-            } else if (cls.includes('text-slate-500')) {
-              childEl.style.color = template.tipo === 'dark' ? tonsTexto[300] : template.corTexto;
-            } else if (cls.includes('text-slate-300')) {
-              childEl.style.color = template.corTexto;
+            // Text colors - também trata classes dark:text-*
+            if (cls.includes('text-white') || cls.includes('dark:text-white')) {
+              const cor = template.tipo === 'light' ? '#0f172a' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('text-slate-900') || cls.includes('dark:text-slate-900')) {
+              const cor = template.tipo === 'light' ? '#0f172a' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('text-slate-700') || cls.includes('dark:text-slate-700')) {
+              const cor = template.tipo === 'light' ? '#334155' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('text-slate-600') || cls.includes('dark:text-slate-600')) {
+              const cor = template.tipo === 'light' ? '#475569' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('text-slate-400') || cls.includes('dark:text-slate-400')) {
+              const cor = template.tipo === 'light' ? '#94a3b8' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('text-slate-500') || cls.includes('dark:text-slate-500')) {
+              const cor = template.tipo === 'light' ? '#64748b' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
+            } else if (cls.includes('text-slate-300') || cls.includes('dark:text-slate-300')) {
+              const cor = template.tipo === 'light' ? '#cbd5e1' : template.corTexto;
+              childEl.style.setProperty('color', cor, 'important');
             }
             
-            // Borders
-            if (cls.includes('border-slate-700')) {
-              childEl.style.borderColor = tonsFundo[700] || template.corFundo;
-            } else if (cls.includes('border-slate-200')) {
-              childEl.style.borderColor = tonsFundo[200] || template.corFundo;
+            // Borders - também trata classes dark:border-*
+            if (cls.includes('border-slate-700') || cls.includes('dark:border-slate-700')) {
+              const cor = template.tipo === 'light' ? '#334155' : (tonsFundo[700] || template.corFundo);
+              childEl.style.setProperty('border-color', cor, 'important');
+            } else if (cls.includes('border-slate-200') || cls.includes('dark:border-slate-200')) {
+              const cor = template.tipo === 'light' ? '#e2e8f0' : (tonsFundo[200] || template.corFundo);
+              childEl.style.setProperty('border-color', cor, 'important');
             }
           });
         });
@@ -411,39 +663,30 @@ export function aplicarTemplate(template: Template | any) {
             }
           }
         });
-      } else {
-        // Para templates dark/light, remove estilos inline que possam ter sido aplicados anteriormente
-        const headerChildren = header.querySelectorAll('*');
-        headerChildren.forEach((child) => {
-          const childEl = child as HTMLElement;
-          if (childEl) {
-            childEl.style.removeProperty('background-color');
-            childEl.style.removeProperty('color');
-            childEl.style.removeProperty('border-color');
-          }
-        });
-      }
+                } else {
+                  // Para template dark, remove estilos inline e deixa o Tailwind gerenciar
+                  if (template.tipo === 'dark') {
+                    const headerChildren = header.querySelectorAll('*');
+                    headerChildren.forEach((child) => {
+                      const childEl = child as HTMLElement;
+                      if (childEl) {
+                        childEl.style.removeProperty('background-color');
+                        childEl.style.removeProperty('color');
+                        childEl.style.removeProperty('border-color');
+                      }
+                    });
+                  }
+                  // Para light e custom, os estilos já foram aplicados acima
+                }
     }
     
-    // Atualiza fundo do elemento principal
-    const mainContainer = document.querySelector('[class*="min-h-screen"]') as HTMLElement;
-    if (mainContainer) {
-      if (usarCoresSlatePadrao) {
-        // Para dark/light, remove estilos inline
-        mainContainer.style.removeProperty('background');
-      } else {
-        // Para custom, aplica gradiente
-        const fromCor = template.tipo === 'dark' ? tonsFundo[900] : tonsFundo[50];
-        const toCor = template.tipo === 'dark' ? tonsFundo[800] : tonsFundo[100];
-        mainContainer.style.background = `linear-gradient(to bottom right, ${fromCor}, ${toCor})`;
-      }
-    }
+    // Atualiza fundo do elemento principal (já tratado acima no appRoot)
     
     // Atualiza InstallPrompt
     const installPrompt = document.querySelector('.install-prompt-container') as HTMLElement;
     if (installPrompt) {
-      if (usarCoresSlatePadrao) {
-        // Para dark/light, remove estilos inline e deixa o Tailwind gerenciar
+      if (template.tipo === 'dark') {
+        // Para dark, remove estilos inline e deixa o Tailwind gerenciar
         installPrompt.style.removeProperty('background-color');
         const textosPrompt = installPrompt.querySelectorAll('h3, p, span, div[class*="text-"]');
         textosPrompt.forEach((el) => {
@@ -453,24 +696,21 @@ export function aplicarTemplate(template: Template | any) {
           }
         });
       } else {
-        // Para custom, aplica cores do template
-        if (template.tipo === 'dark') {
-          installPrompt.style.backgroundColor = tonsFundo[800] || template.corFundo;
-        } else {
-          installPrompt.style.backgroundColor = tonsFundo[50] || template.corFundo;
-        }
-        
+        // Para light e custom, aplica cores do template via estilos inline
+        installPrompt.style.setProperty('background-color', template.tipo === 'light' ? '#ffffff' : (tonsFundo[50] || template.corFundo), 'important');
+
         // Atualiza textos dentro do InstallPrompt
         const textosPrompt = installPrompt.querySelectorAll('h3, p, span, div[class*="text-"]');
         textosPrompt.forEach((el) => {
           const htmlEl = el as HTMLElement;
           if (!htmlEl || !htmlEl.classList) return;
-          
+
           const classes = Array.from(htmlEl.classList);
-          if (classes.some(c => c.includes('text-slate-900') || c.includes('text-white'))) {
-            htmlEl.style.color = template.corTexto;
+          // Remove estilos dark e aplica cores do template
+          if (classes.some(c => c.includes('dark:text-') || c.includes('text-slate-900') || c.includes('text-white'))) {
+            htmlEl.style.setProperty('color', template.corTexto, 'important');
           } else if (classes.some(c => c.includes('text-slate-600') || c.includes('text-slate-300'))) {
-            htmlEl.style.color = template.tipo === 'dark' ? tonsTexto[300] : template.corTexto;
+            htmlEl.style.setProperty('color', template.corTexto, 'important');
           }
         });
       }
@@ -499,6 +739,54 @@ export function aplicarTemplate(template: Template | any) {
     
   } catch (error) {
     console.warn('⚠️ Erro ao aplicar estilos inline em elementos slate:', error);
+  }
+  
+  // Aplica estilos inline especificamente em elementos dentro de main para light e custom
+  // Isso garante que elementos renderizados dinamicamente também sejam atualizados
+  if (template.tipo === 'light' || template.tipo === 'custom') {
+    try {
+      // Aguarda um pouco para garantir que o React terminou de renderizar
+      setTimeout(() => {
+        const main = document.querySelector('main');
+        if (main) {
+          const elementosMain = main.querySelectorAll('[class*="bg-slate-"], [class*="dark:bg-"], [class*="border-slate-"], [class*="dark:border-"]');
+          elementosMain.forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            if (!htmlEl || !htmlEl.classList) return;
+            
+            const classes = Array.from(htmlEl.classList);
+            
+            classes.forEach((cls: string) => {
+              // Background colors
+              if (cls.includes('bg-slate-800') || cls.includes('dark:bg-slate-800')) {
+                const cor = template.tipo === 'light' ? '#ffffff' : (tonsFundo[800] || template.corFundo);
+                htmlEl.style.setProperty('background-color', cor, 'important');
+              } else if (cls.includes('bg-slate-700') || cls.includes('dark:bg-slate-700')) {
+                const cor = template.tipo === 'light' ? '#f1f5f9' : (tonsFundo[700] || template.corFundo);
+                htmlEl.style.setProperty('background-color', cor, 'important');
+              } else if (cls.includes('bg-slate-600') || cls.includes('dark:bg-slate-600')) {
+                const cor = template.tipo === 'light' ? '#e2e8f0' : (tonsFundo[600] || template.corFundo);
+                htmlEl.style.setProperty('background-color', cor, 'important');
+              } else if (cls.includes('bg-white') || cls.includes('dark:bg-white')) {
+                const cor = template.tipo === 'light' ? '#ffffff' : (tonsFundo[50] || template.corFundo);
+                htmlEl.style.setProperty('background-color', cor, 'important');
+              }
+              
+              // Border colors
+              if (cls.includes('border-slate-700') || cls.includes('dark:border-slate-700')) {
+                const cor = template.tipo === 'light' ? '#cbd5e1' : (tonsFundo[700] || template.corFundo);
+                htmlEl.style.setProperty('border-color', cor, 'important');
+              } else if (cls.includes('border-slate-200') || cls.includes('dark:border-slate-200')) {
+                const cor = template.tipo === 'light' ? '#e2e8f0' : (tonsFundo[200] || template.corFundo);
+                htmlEl.style.setProperty('border-color', cor, 'important');
+              }
+            });
+          });
+        }
+      }, 100);
+    } catch (error) {
+      console.warn('⚠️ Erro ao aplicar estilos inline em elementos do main:', error);
+    }
   }
   
   console.log('🎨 Template aplicado:', template.nome, {

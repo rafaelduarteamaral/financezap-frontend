@@ -41,6 +41,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     console.log('📋 Classes no root:', root.classList.toString());
   }, [theme]);
   
+  // Escuta mudanças de tema vindas de templates
+  useEffect(() => {
+    const handleThemeChange = (event: CustomEvent) => {
+      const newTheme = event.detail.theme as Theme;
+      if (newTheme !== theme) {
+        setTheme(newTheme);
+      }
+    };
+    
+    window.addEventListener('themeChanged', handleThemeChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener);
+    };
+  }, [theme]);
+  
   // Aplica o tema imediatamente ao montar (antes do primeiro render)
   useEffect(() => {
     const root = document.documentElement;
