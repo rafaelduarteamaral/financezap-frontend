@@ -2,10 +2,10 @@
 // Prioridade:
 // 1. VITE_API_URL do .env.local (desenvolvimento local)
 // 2. VITE_API_URL do .env (configuração padrão)
-// 3. Em produção: https://api.usezela.com
+// 3. Em produção: https://financezap.rafael-damaral.workers.dev
 // 4. Em desenvolvimento sem .env: http://localhost:3000
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD ? 'https://api.usezela.com' : 'https://api.usezela.com');
+  (import.meta.env.PROD ? 'https://financezap.rafael-damaral.workers.dev' : 'http://localhost:3000');
 
 // Debug: mostra a URL da API sendo usada (remover em produção)
 if (import.meta.env.DEV) {

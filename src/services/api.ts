@@ -24,6 +24,42 @@ function getHeaders(): Record<string, string> {
 }
 
 export const api = {
+  // Criar transação
+  async criarTransacao(dados: {
+    descricao: string;
+    valor: number;
+    categoria?: string;
+    tipo: 'entrada' | 'saida';
+    metodo: 'credito' | 'debito';
+    dataHora?: string;
+    data?: string;
+  }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/transacoes`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
   // Excluir transação
   async excluirTransacao(id: number) {
     const headers = getHeaders();
@@ -336,6 +372,150 @@ export const api = {
     return data;
   },
 
+  // Templates - Listar
+  async listarTemplates() {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/templates`, {
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Templates - Criar
+  async criarTemplate(dados: {
+    nome: string;
+    corPrimaria: string;
+    corSecundaria: string;
+    corDestaque: string;
+    corFundo: string;
+    corTexto: string;
+  }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/templates`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Templates - Atualizar
+  async atualizarTemplate(id: number, dados: {
+    nome?: string;
+    corPrimaria?: string;
+    corSecundaria?: string;
+    corDestaque?: string;
+    corFundo?: string;
+    corTexto?: string;
+  }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/templates/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Templates - Deletar
+  async deletarTemplate(id: number) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/templates/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Templates - Ativar
+  async ativarTemplate(id: number) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/templates/${id}/ativar`, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
   // Chat de IA para consultas financeiras
   async enviarMensagemChat(mensagem: string) {
     const headers = getHeaders();
@@ -346,6 +526,40 @@ export const api = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ mensagem }),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Agendamentos - Criar
+  async criarAgendamento(dados: {
+    descricao: string;
+    valor: number;
+    dataAgendamento: string;
+    tipo: 'pagamento' | 'recebimento';
+    categoria?: string;
+  }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/agendamentos`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
     });
     
     if (response.status === 401) {

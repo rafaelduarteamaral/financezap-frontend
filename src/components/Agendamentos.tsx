@@ -5,9 +5,10 @@ import type { Agendamento } from '../config';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaTrash, FaClock } from 'react-icons/fa';
+import { FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaTrash, FaClock, FaPlus } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
 import { capitalize } from '../utils/capitalize';
+import { ModalFormularioAgendamento } from './ModalFormularioAgendamento';
 
 interface AgendamentosProps {
   isDark: boolean;
@@ -18,6 +19,8 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendente' | 'pago' | 'cancelado'>('todos');
+  const [modalAgendamentoAberto, setModalAgendamentoAberto] = useState(false);
+  const [categorias, setCategorias] = useState<string[]>(['outros']);
 
   const carregarAgendamentos = async () => {
     try {
@@ -40,6 +43,21 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
   useEffect(() => {
     carregarAgendamentos();
   }, [filtroStatus]);
+
+  useEffect(() => {
+    const carregarCategorias = async () => {
+      try {
+        const response = await api.buscarCategorias();
+        if (response.success && response.categorias) {
+          const nomesCategorias = response.categorias.map((cat: any) => cat.nome);
+          setCategorias(['outros', ...nomesCategorias]);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+      }
+    };
+    carregarCategorias();
+  }, []);
 
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -139,8 +157,21 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
             </p>
           </div>
 
-          {/* Filtros */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <motion.button
+              onClick={() => setModalAgendamentoAberto(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white ${
+                isDark ? 'bg-primary-500 hover:bg-primary-600' : 'bg-primary-600 hover:bg-primary-700'
+              }`}
+            >
+              <FaPlus size={14} />
+              Novo Agendamento
+            </motion.button>
+
+            {/* Filtros */}
+            <div className="flex gap-2 flex-wrap">
             {(['todos', 'pendente', 'pago', 'cancelado'] as const).map((status) => (
               <motion.button
                 key={status}
@@ -160,6 +191,7 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                 {status === 'todos' ? 'Todos' : status === 'pendente' ? 'Pendentes' : status === 'pago' ? 'Pagos' : 'Cancelados'}
               </motion.button>
             ))}
+            </div>
           </div>
         </div>
 
@@ -309,6 +341,17 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
           ))}
         </div>
       )}
+
+      {/* Modal de Novo Agendamento */}
+      <ModalFormularioAgendamento
+        isOpen={modalAgendamentoAberto}
+        onClose={() => setModalAgendamentoAberto(false)}
+        onSuccess={() => {
+          carregarAgendamentos();
+        }}
+        isDark={isDark}
+        categorias={categorias}
+      />
     </div>
   );
 }

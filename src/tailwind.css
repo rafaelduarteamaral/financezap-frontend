@@ -34,6 +34,19 @@
   --color-neutral-100: #EDEDED;
   --color-neutral-50: #F7F7F7;
   
+  /* Slate - valores padrão que serão sobrescritos dinamicamente pelos templates */
+  --color-slate-50: #F7F7F7;
+  --color-slate-100: #EDEDED;
+  --color-slate-200: #DCDCDC;
+  --color-slate-300: #C4C4C4;
+  --color-slate-400: #9E9E9E;
+  --color-slate-500: #6E6E6E;
+  --color-slate-600: #3C3C3C;
+  --color-slate-700: #2D2D2D;
+  --color-slate-800: #1E1E1E;
+  --color-slate-900: #121212;
+  --color-slate-950: #050505;
+  
   /* 🎯 Cores de status */
   --color-status-success: #00C853;
   --color-status-warning: #FFB400;
@@ -44,7 +57,11 @@
   --color-tech-cyan: #00F5D4;
   --color-tech-blue: #0A2342;
   
-  /* Mantém primary para compatibilidade */
+  /* Mantém primary para compatibilidade - valores padrão */
+  /* Esses valores serão sobrescritos dinamicamente quando um template for aplicado */
+  --color-primary: #00C853;
+  --color-primary-light: #69F0AE;
+  --color-primary-dark: #00953D;
   --color-primary-50: #e6f5eb;
   --color-primary-100: #ccebd7;
   --color-primary-200: #99d7af;
@@ -55,6 +72,12 @@
   --color-primary-700: #00782d;
   --color-primary-800: #005922;
   --color-primary-900: #003a17;
+  
+  /* Variáveis para cores do template */
+  --color-secondary: #8B5CF6;
+  --color-accent: #10B981;
+  --color-background: #F9FAFB;
+  --color-text: #111827;
 }
 
 /* Garantir que o dark mode funcione */

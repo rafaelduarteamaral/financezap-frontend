@@ -46,6 +46,21 @@ export default {
           100: "#EDEDED", // fundo claro
           50:  "#F7F7F7", // quase branco
         },
+        
+        // Slate com variáveis CSS dinâmicas para templates
+        slate: {
+          50: 'var(--color-slate-50, #F7F7F7)',
+          100: 'var(--color-slate-100, #EDEDED)',
+          200: 'var(--color-slate-200, #DCDCDC)',
+          300: 'var(--color-slate-300, #C4C4C4)',
+          400: 'var(--color-slate-400, #9E9E9E)',
+          500: 'var(--color-slate-500, #6E6E6E)',
+          600: 'var(--color-slate-600, #3C3C3C)',
+          700: 'var(--color-slate-700, #2D2D2D)',
+          800: 'var(--color-slate-800, #1E1E1E)',
+          900: 'var(--color-slate-900, #121212)',
+          950: 'var(--color-slate-950, #050505)',
+        },
 
         // 🎯 Cores de status (dashboard financeiro, alertas, etc.)
         status: {
@@ -62,20 +77,21 @@ export default {
         },
 
         // Mantém primary para compatibilidade com código existente
+        // Usa variáveis CSS dinâmicas para permitir mudança de templates
         primary: {
-          DEFAULT: "#00C853",
-          light: "#69F0AE",
-          dark: "#00953D",
-          50: '#e6f5eb',
-          100: '#ccebd7',
-          200: '#99d7af',
-          300: '#66c387',
-          400: '#33af5f',
-          500: '#00C853',
-          600: '#00953D',
-          700: '#00782d',
-          800: '#005922',
-          900: '#003a17',
+          DEFAULT: 'var(--color-primary-500, #00C853)',
+          light: 'var(--color-primary-light, #69F0AE)',
+          dark: 'var(--color-primary-dark, #00953D)',
+          50: 'var(--color-primary-50, #e6f5eb)',
+          100: 'var(--color-primary-100, #ccebd7)',
+          200: 'var(--color-primary-200, #99d7af)',
+          300: 'var(--color-primary-300, #66c387)',
+          400: 'var(--color-primary-400, #33af5f)',
+          500: 'var(--color-primary-500, #00C853)',
+          600: 'var(--color-primary-600, #00953D)',
+          700: 'var(--color-primary-700, #00782d)',
+          800: 'var(--color-primary-800, #005922)',
+          900: 'var(--color-primary-900, #003a17)',
         },
       },
     },

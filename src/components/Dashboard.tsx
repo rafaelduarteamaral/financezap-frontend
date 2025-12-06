@@ -15,10 +15,11 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { FaSearch, FaTrash, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaSearch, FaTrash, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown, FaPlus } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
 import type { Transacao, Filtros } from '../config';
 import { capitalize } from '../utils/capitalize';
+import { ModalFormularioTransacao } from './ModalFormularioTransacao';
 
 const COLORS = ['#00C853', '#E5C07B', '#00953D', '#B39553', '#69F0AE'];
 
@@ -69,6 +70,7 @@ export function Dashboard({
     despesas: false,
     saldoPrevisto: false,
   });
+  const [modalTransacaoAberto, setModalTransacaoAberto] = useState(false);
 
   const toggleCard = (card: string) => {
     setCardsExpandidos(prev => ({
@@ -545,6 +547,7 @@ export function Dashboard({
               value={filtros.dataInicio || ''}
               onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value || undefined })}
               className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
+              style={isDark ? {} : { colorScheme: 'light' }}
             />
           </div>
 
@@ -555,6 +558,7 @@ export function Dashboard({
               value={filtros.dataFim || ''}
               onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value || undefined })}
               className={`w-full px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base border rounded-md sm:rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'}`}
+              style={isDark ? {} : { colorScheme: 'light' }}
             />
           </div>
 
@@ -881,12 +885,23 @@ export function Dashboard({
       <div className={`rounded-lg sm:rounded-xl shadow-sm border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
         <div className={`p-4 sm:p-6 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div>
+            <div className="flex-1">
               <h2 className={`text-lg sm:text-xl font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Transações</h2>
               <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                 Mostrando {transacoes.length} de {totalTransacoes} transação(ões)
               </p>
             </div>
+            <motion.button
+              onClick={() => setModalTransacaoAberto(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white ${
+                isDark ? 'bg-primary-500 hover:bg-primary-600' : 'bg-primary-600 hover:bg-primary-700'
+              }`}
+            >
+              <FaPlus size={14} />
+              Nova Transação
+            </motion.button>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {/* Seletor de itens por página */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1151,6 +1166,24 @@ export function Dashboard({
           </>
         )}
       </div>
+
+      {/* Modal de Nova Transação */}
+      <ModalFormularioTransacao
+        isOpen={modalTransacaoAberto}
+        onClose={() => setModalTransacaoAberto(false)}
+        onSuccess={async () => {
+          console.log('🔄 onSuccess chamado após criar transação');
+          
+          // Aguarda um pouco para o backend processar
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Limpa TODOS os filtros e recarrega os dados
+          console.log('🔄 Limpando filtros e recarregando dados após criar transação...');
+          limparFiltros();
+        }}
+        isDark={isDark}
+        categorias={todasCategorias}
+      />
     </>
   );
 }

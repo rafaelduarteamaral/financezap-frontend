@@ -34,3 +34,53 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari, Opera */
 }
+
+/* Força atualização de cores quando template é aplicado */
+.template-applied {
+  /* Esta classe força o navegador a recalcular os estilos */
+  transform: translateZ(0);
+}
+
+/* Estilos para inputs de data - garante que o ícone de calendário seja visível */
+input[type="date"] {
+  position: relative;
+}
+
+/* Chrome, Edge, Safari */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  filter: invert(0);
+}
+
+/* Modo light - ícone escuro */
+input[type="date"]:not(.dark *)::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  opacity: 0.6;
+}
+
+input[type="date"]:not(.dark *):hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+/* Modo dark - ícone claro */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="date"].dark::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+.dark input[type="date"]:hover::-webkit-calendar-picker-indicator,
+input[type="date"].dark:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+/* Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+input[type="date"]:hover::-moz-calendar-picker-indicator {
+  opacity: 1;
+}

@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { api } from '../services/api';
 import { Avatar } from './Avatar';
 import { motion } from 'framer-motion';
+import { aplicarTemplate as aplicarTemplateUtil } from '../utils/applyTemplate';
 import { 
   FaUser, 
   FaCreditCard, 
@@ -18,7 +19,8 @@ import {
   FaWhatsapp,
   FaUserPlus,
   FaTrash,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaPalette,
 } from 'react-icons/fa';
 
 interface ConfiguracoesProps {
@@ -102,7 +104,7 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   const { showSuccess, showError, showInfo } = useToast();
   const isDark = theme === 'dark';
   
-  const [abaAtiva, setAbaAtiva] = useState<'perfil' | 'planos'>('perfil');
+  const [abaAtiva, setAbaAtiva] = useState<'perfil' | 'planos' | 'personalizacao'>('perfil');
   const [editando, setEditando] = useState(false);
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -110,6 +112,140 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   const [enviandoContato, setEnviandoContato] = useState(false);
   const [excluindoDados, setExcluindoDados] = useState(false);
   const [mostrarConfirmacaoExclusao, setMostrarConfirmacaoExclusao] = useState(false);
+  
+  // Estados para templates
+  interface Template {
+    id: number;
+    nome: string;
+    tipo: 'dark' | 'light' | 'custom';
+    corPrimaria: string;
+    corSecundaria: string;
+    corDestaque: string;
+    corFundo: string;
+    corTexto: string;
+    ativo: boolean;
+    criadoEm: string;
+  }
+
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [carregandoTemplates, setCarregandoTemplates] = useState(false);
+  const [criandoTemplate, setCriandoTemplate] = useState(false);
+  const [templateEditando, setTemplateEditando] = useState<Template | null>(null);
+  const [novoTemplate, setNovoTemplate] = useState({
+    nome: '',
+    corPrimaria: '#3B82F6',
+    corSecundaria: '#8B5CF6',
+    corDestaque: '#10B981',
+    corFundo: isDark ? '#1E293B' : '#F9FAFB',
+    corTexto: isDark ? '#F1F5F9' : '#111827'
+  });
+
+  // Carrega templates do backend
+  const carregarTemplates = async () => {
+    setCarregandoTemplates(true);
+    try {
+      const response = await api.listarTemplates();
+      if (response.success && response.templates) {
+        setTemplates(response.templates);
+        // Aplica o template ativo
+        const templateAtivo = response.templates.find((t: Template) => t.ativo);
+        if (templateAtivo) {
+          aplicarTemplate(templateAtivo);
+        }
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar templates:', error);
+    } finally {
+      setCarregandoTemplates(false);
+    }
+  };
+
+  // Aplica template no tema
+  const aplicarTemplate = (template: Template) => {
+    aplicarTemplateUtil(template);
+  };
+
+  // Ativa um template
+  const handleAtivarTemplate = async (id: number) => {
+    try {
+      const response = await api.ativarTemplate(id);
+      if (response.success) {
+        // Aplica o template imediatamente usando o template retornado pela API
+        if (response.template) {
+          aplicarTemplate({
+            id: response.template.id,
+            nome: response.template.nome,
+            tipo: response.template.tipo,
+            corPrimaria: response.template.corPrimaria,
+            corSecundaria: response.template.corSecundaria,
+            corDestaque: response.template.corDestaque,
+            corFundo: response.template.corFundo,
+            corTexto: response.template.corTexto,
+            ativo: response.template.ativo,
+            criadoEm: ''
+          });
+        }
+        
+        // Recarrega templates para atualizar o estado
+        await carregarTemplates();
+        
+        showSuccess('Template ativado com sucesso!');
+      } else {
+        throw new Error(response.error || 'Erro ao ativar template');
+      }
+    } catch (error: any) {
+      console.error('Erro ao ativar template:', error);
+      showError(`Erro ao ativar: ${error.message}`);
+    }
+  };
+
+  // Cria novo template
+  const handleCriarTemplate = async () => {
+    if (!novoTemplate.nome.trim()) {
+      showError('Por favor, informe um nome para o template');
+      return;
+    }
+
+    setCriandoTemplate(true);
+    try {
+      const response = await api.criarTemplate(novoTemplate);
+      if (response.success) {
+        showSuccess('Template criado com sucesso!');
+        setNovoTemplate({
+          nome: '',
+          corPrimaria: '#3B82F6',
+          corSecundaria: '#8B5CF6',
+          corDestaque: '#10B981',
+          corFundo: isDark ? '#1E293B' : '#F9FAFB',
+          corTexto: isDark ? '#F1F5F9' : '#111827'
+        });
+        await carregarTemplates();
+      } else {
+        throw new Error(response.error || 'Erro ao criar template');
+      }
+    } catch (error: any) {
+      console.error('Erro ao criar template:', error);
+      showError(`Erro ao criar: ${error.message}`);
+    } finally {
+      setCriandoTemplate(false);
+    }
+  };
+
+  // Deleta template
+  const handleDeletarTemplate = async (id: number) => {
+    try {
+      const response = await api.deletarTemplate(id);
+      if (response.success) {
+        showSuccess('Template deletado com sucesso!');
+        await carregarTemplates();
+      } else {
+        throw new Error(response.error || 'Erro ao deletar template');
+      }
+    } catch (error: any) {
+      console.error('Erro ao deletar template:', error);
+      showError(`Erro ao deletar: ${error.message}`);
+    }
+  };
 
   // Atualiza os estados quando o usuário muda ou quando o modal abre
   useEffect(() => {
@@ -125,8 +261,13 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
       }
       // Reseta o modo de edição quando abre o modal
       setEditando(false);
+      
+      // Carrega templates quando abre a aba
+      if (abaAtiva === 'personalizacao') {
+        carregarTemplates();
+      }
     }
-  }, [usuario, isOpen]);
+  }, [usuario, isOpen, abaAtiva]);
 
   const handleSalvarPerfil = async () => {
     if (!nome.trim()) {
@@ -295,6 +436,26 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
             <div className="flex items-center justify-center gap-2">
               <FaCreditCard size={16} />
               Planos e Assinatura
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              setAbaAtiva('personalizacao');
+              carregarTemplates();
+            }}
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+              abaAtiva === 'personalizacao'
+                ? isDark
+                  ? 'bg-slate-700 text-white border-b-2 border-primary-500'
+                  : 'bg-slate-50 text-slate-900 border-b-2 border-primary-600'
+                : isDark
+                ? 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaPalette size={16} />
+              Personalização
             </div>
           </button>
         </div>
@@ -739,6 +900,276 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {abaAtiva === 'personalizacao' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  Templates de Cores
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Escolha um template ou crie o seu próprio com cores personalizadas
+                </p>
+              </div>
+
+              {carregandoTemplates ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Lista de Templates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {templates.map((template) => (
+                      <motion.div
+                        key={template.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`p-4 rounded-xl border-2 ${
+                          template.ativo
+                            ? isDark
+                              ? 'border-primary-500 bg-primary-500/10'
+                              : 'border-primary-600 bg-primary-50'
+                            : isDark
+                            ? 'border-slate-700 bg-slate-800'
+                            : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            {template.nome}
+                          </h4>
+                          {template.ativo && (
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              isDark ? 'bg-green-900/20 text-green-400' : 'bg-green-100 text-green-700'
+                            }`}>
+                              Ativo
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Preview das cores */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <div 
+                            className="h-12 rounded-lg"
+                            style={{ backgroundColor: template.corPrimaria }}
+                            title="Primária"
+                          />
+                          <div 
+                            className="h-12 rounded-lg"
+                            style={{ backgroundColor: template.corSecundaria }}
+                            title="Secundária"
+                          />
+                          <div 
+                            className="h-12 rounded-lg"
+                            style={{ backgroundColor: template.corDestaque }}
+                            title="Destaque"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          {!template.ativo && (
+                            <motion.button
+                              onClick={() => handleAtivarTemplate(template.id)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="flex-1 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium"
+                            >
+                              Ativar
+                            </motion.button>
+                          )}
+                          {template.tipo === 'custom' && (
+                            <>
+                              <motion.button
+                                onClick={() => {
+                                  setTemplateEditando(template);
+                                  setNovoTemplate({
+                                    nome: template.nome,
+                                    corPrimaria: template.corPrimaria,
+                                    corSecundaria: template.corSecundaria,
+                                    corDestaque: template.corDestaque,
+                                    corFundo: template.corFundo,
+                                    corTexto: template.corTexto
+                                  });
+                                }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                                  isDark
+                                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                }`}
+                              >
+                                <FaEdit size={14} />
+                              </motion.button>
+                              <motion.button
+                                onClick={() => {
+                                  if (confirm('Tem certeza que deseja deletar este template?')) {
+                                    handleDeletarTemplate(template.id);
+                                  }
+                                }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                                  isDark
+                                    ? 'bg-red-900/20 text-red-400 hover:bg-red-900/30'
+                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                }`}
+                              >
+                                <FaTrash size={14} />
+                              </motion.button>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Formulário para criar/editar template */}
+                  <div className={`p-6 rounded-xl border-2 ${
+                    isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                  }`}>
+                    <h4 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      {templateEditando ? 'Editar Template' : 'Criar Novo Template'}
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDark ? 'text-slate-300' : 'text-slate-700'
+                        }`}>
+                          Nome do Template
+                        </label>
+                        <input
+                          type="text"
+                          value={novoTemplate.nome}
+                          onChange={(e) => setNovoTemplate({ ...novoTemplate, nome: e.target.value })}
+                          className={`w-full px-4 py-2 rounded-lg border ${
+                            isDark
+                              ? 'bg-slate-700 border-slate-600 text-white'
+                              : 'bg-white border-slate-300 text-slate-900'
+                          } focus:ring-2 focus:ring-primary-500 focus:border-transparent`}
+                          placeholder="Meu Template Personalizado"
+                        />
+                      </div>
+
+                      {[
+                        { key: 'corPrimaria', label: 'Cor Primária' },
+                        { key: 'corSecundaria', label: 'Cor Secundária' },
+                        { key: 'corDestaque', label: 'Cor de Destaque' },
+                        { key: 'corFundo', label: 'Cor de Fundo' },
+                        { key: 'corTexto', label: 'Cor de Texto' }
+                      ].map(({ key, label }) => (
+                        <div key={key}>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            isDark ? 'text-slate-300' : 'text-slate-700'
+                          }`}>
+                            {label}
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={novoTemplate[key as keyof typeof novoTemplate]}
+                              onChange={(e) => {
+                                const novasCores = { ...novoTemplate, [key]: e.target.value };
+                                setNovoTemplate(novasCores);
+                                aplicarTemplate({
+                                  id: 0,
+                                  tipo: 'custom',
+                                  ...novasCores,
+                                  ativo: false,
+                                  criadoEm: ''
+                                });
+                              }}
+                              className="w-16 h-16 rounded-lg border-2 cursor-pointer"
+                              style={{ borderColor: isDark ? '#475569' : '#CBD5E1' }}
+                            />
+                            <input
+                              type="text"
+                              value={novoTemplate[key as keyof typeof novoTemplate]}
+                              onChange={(e) => {
+                                const valor = e.target.value;
+                                if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(valor) || valor === '') {
+                                  const novasCores = { ...novoTemplate, [key]: valor };
+                                  setNovoTemplate(novasCores);
+                                  if (valor) {
+                                    aplicarTemplate({
+                                      id: 0,
+                                      tipo: 'custom',
+                                      ...novasCores,
+                                      ativo: false,
+                                      criadoEm: ''
+                                    });
+                                  }
+                                }
+                              }}
+                              className={`flex-1 px-4 py-2 rounded-lg border ${
+                                isDark
+                                  ? 'bg-slate-700 border-slate-600 text-white'
+                                  : 'bg-white border-slate-300 text-slate-900'
+                              } focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm`}
+                              placeholder="#000000"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <motion.button
+                        onClick={templateEditando 
+                          ? async () => {
+                              try {
+                                const response = await api.atualizarTemplate(templateEditando.id, novoTemplate);
+                                if (response.success) {
+                                  showSuccess('Template atualizado com sucesso!');
+                                  setTemplateEditando(null);
+                                  await carregarTemplates();
+                                }
+                              } catch (error: any) {
+                                showError(`Erro ao atualizar: ${error.message}`);
+                              }
+                            }
+                          : handleCriarTemplate
+                        }
+                        disabled={criandoTemplate || !novoTemplate.nome.trim()}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium disabled:opacity-50"
+                      >
+                        <FaSave size={16} />
+                        {criandoTemplate ? 'Salvando...' : (templateEditando ? 'Atualizar' : 'Criar Template')}
+                      </motion.button>
+                      {templateEditando && (
+                        <motion.button
+                          onClick={() => {
+                            setTemplateEditando(null);
+                            setNovoTemplate({
+                              nome: '',
+                              corPrimaria: '#3B82F6',
+                              corSecundaria: '#8B5CF6',
+                              corDestaque: '#10B981',
+                              corFundo: isDark ? '#1E293B' : '#F9FAFB',
+                              corTexto: isDark ? '#F1F5F9' : '#111827'
+                            });
+                          }}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`px-4 py-2 rounded-lg font-medium ${
+                            isDark
+                              ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          Cancelar
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

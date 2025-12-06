@@ -172,7 +172,7 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-slide-up">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border-2 border-green-500 p-4 flex items-start gap-3">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border-2 border-green-500 p-4 flex items-start gap-3 install-prompt-container">
         <div className="flex-shrink-0 mt-1">
           <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
             <FaDownload className="text-white text-xl" />

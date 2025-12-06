@@ -15,7 +15,8 @@ import {
   FaMoon,
   FaSun,
   FaExclamationTriangle,
-  FaGift
+  FaGift,
+  FaPalette
 } from 'react-icons/fa';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ChatIAPopup } from './components/ChatIAPopup';
@@ -29,11 +30,12 @@ import { AnimatedIcon } from './components/AnimatedIcon';
 import { ToastContainer } from './components/Toast';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { motion } from 'framer-motion';
+import { aplicarTemplate as aplicarTemplateUtil } from './utils/applyTemplate';
 
 
 function App() {
   const { isAuthenticated, usuario, logout, loading: authLoading, token } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { showSuccess, showError, confirm, toasts, closeToast, confirmOptions, isConfirmOpen, closeConfirm } = useToast();
   const isDark = theme === 'dark';
   
@@ -51,6 +53,9 @@ function App() {
   const [todasTransacoesParaGraficos, setTodasTransacoesParaGraficos] = useState<Transacao[]>([]);
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias'>('dashboard');
   const [configuracoesAberto, setConfiguracoesAberto] = useState(false);
+  const [templatesDropdownAberto, setTemplatesDropdownAberto] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [carregandoTemplates, setCarregandoTemplates] = useState(false);
 
   // Função para remover duplicatas de transações
   const removerDuplicatas = (transacoes: Transacao[]): Transacao[] => {
@@ -227,7 +232,131 @@ function App() {
     }
   };
 
+  // Função para aplicar template (reutilizável)
+  const aplicarTemplate = (template: any) => {
+    aplicarTemplateUtil(template);
+  };
+
+  // Carrega templates do backend
+  const carregarTemplates = async () => {
+    if (!isAuthenticated || !usuario) return;
+    
+    setCarregandoTemplates(true);
+    try {
+      const response = await api.listarTemplates();
+      if (response.success && response.templates) {
+        setTemplates(response.templates);
+        // Aplica o template ativo
+        const templateAtivo = response.templates.find((t: any) => t.ativo);
+        if (templateAtivo) {
+          aplicarTemplate(templateAtivo);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar templates:', error);
+    } finally {
+      setCarregandoTemplates(false);
+    }
+  };
+
+  // Ativa um template
+  const handleAtivarTemplate = async (id: number) => {
+    try {
+      const templateParaAtivar = templates.find(t => t.id === id);
+      
+      const response = await api.ativarTemplate(id);
+      if (response.success) {
+        // Aplica o template imediatamente
+        if (response.template) {
+          aplicarTemplate({
+            id: response.template.id,
+            nome: response.template.nome,
+            tipo: response.template.tipo,
+            corPrimaria: response.template.corPrimaria,
+            corSecundaria: response.template.corSecundaria,
+            corDestaque: response.template.corDestaque,
+            corFundo: response.template.corFundo,
+            corTexto: response.template.corTexto,
+            ativo: response.template.ativo,
+            criadoEm: ''
+          });
+        } else if (templateParaAtivar) {
+          aplicarTemplate(templateParaAtivar);
+        }
+        
+        // Recarrega templates para atualizar o estado
+        await carregarTemplates();
+        
+        // Fecha o dropdown
+        setTemplatesDropdownAberto(false);
+        
+        showSuccess('Template ativado com sucesso!');
+      } else {
+        throw new Error(response.error || 'Erro ao ativar template');
+      }
+    } catch (error: any) {
+      console.error('Erro ao ativar template:', error);
+      showError(`Erro ao ativar: ${error.message}`);
+    }
+  };
+
+  // Listener para atualizar quando template mudar
+  useEffect(() => {
+    const handleTemplateChange = () => {
+      // Força re-renderização quando template muda
+      if (templates.length > 0) {
+        const templateAtivo = templates.find((t: any) => t.ativo);
+        if (templateAtivo) {
+          aplicarTemplate(templateAtivo);
+        }
+      }
+    };
+
+    window.addEventListener('templateChanged', handleTemplateChange);
+    return () => window.removeEventListener('templateChanged', handleTemplateChange);
+  }, [templates]);
+
   // TODOS os hooks devem ser chamados ANTES de qualquer return condicional
+  // Carrega template ativo quando o usuário faz login
+  useEffect(() => {
+    if (isAuthenticated && usuario && !authLoading) {
+      carregarTemplates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, usuario, authLoading]);
+
+  // Limpa e reaplica estilos quando a aba ativa muda
+  // Isso garante que os botões ativos tenham a cor correta
+  useEffect(() => {
+    // Pequeno delay para garantir que o React atualizou as classes
+    const timeout = setTimeout(() => {
+      // Reaplica o template para atualizar cores dos botões
+      if (templates.length > 0) {
+        const templateAtivo = templates.find((t: any) => t.ativo);
+        if (templateAtivo) {
+          aplicarTemplate(templateAtivo);
+        }
+      }
+    }, 10);
+    
+    return () => clearTimeout(timeout);
+  }, [abaAtiva, templates]);
+
+  // Fecha dropdown quando clica fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (templatesDropdownAberto && !target.closest('.templates-dropdown-container')) {
+        setTemplatesDropdownAberto(false);
+      }
+    };
+
+    if (templatesDropdownAberto) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [templatesDropdownAberto]);
+
   // Carrega dados quando o usuário faz login
   useEffect(() => {
     // Aguarda o loading do AuthContext terminar antes de fazer requisições
@@ -262,33 +391,44 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginaAtual]);
 
-  // Busca todas as categorias únicas do usuário (usa todas as transações para gráficos)
+  // Busca todas as categorias disponíveis (padrão + personalizadas) da API
   useEffect(() => {
     const buscarCategorias = async () => {
       if (!usuario) return;
       try {
-        // Usa as transações já carregadas para gráficos, ou busca se necessário
-        if (todasTransacoesParaGraficos.length > 0) {
-          const categoriasUnicas = Array.from(
-            new Set(todasTransacoesParaGraficos.map((t: Transacao) => t.categoria || 'outros'))
-          ).sort();
-          setTodasCategorias(categoriasUnicas);
+        // Busca categorias da API (inclui categorias padrão e personalizadas)
+        const response = await api.buscarCategorias();
+        if (response.success && response.categorias) {
+          const nomesCategorias = response.categorias.map((cat: any) => cat.nome);
+          // Garante que 'outros' está sempre presente
+          const categoriasCompletas = ['outros', ...nomesCategorias.filter((cat: string) => cat !== 'outros')];
+          setTodasCategorias(categoriasCompletas);
         } else {
-          // Se ainda não carregou, busca todas as transações
-          const data = await api.buscarTransacoes({ ...filtros, page: 1, limit: 10000 });
-          if (data.success && data.transacoes) {
-            const categoriasUnicas: string[] = Array.from(
-              new Set(data.transacoes.map((t: Transacao) => t.categoria || 'outros'))
-            ).sort() as string[];
+          // Fallback: extrai das transações se a API falhar
+          if (todasTransacoesParaGraficos.length > 0) {
+            const categoriasUnicas = Array.from(
+              new Set(todasTransacoesParaGraficos.map((t: Transacao) => t.categoria || 'outros'))
+            ).sort();
             setTodasCategorias(categoriasUnicas);
+          } else {
+            // Se ainda não carregou, busca todas as transações
+            const data = await api.buscarTransacoes({ ...filtros, page: 1, limit: 10000 });
+            if (data.success && data.transacoes) {
+              const categoriasUnicas: string[] = Array.from(
+                new Set(data.transacoes.map((t: Transacao) => t.categoria || 'outros'))
+              ).sort() as string[];
+              setTodasCategorias(categoriasUnicas);
+            }
           }
         }
       } catch (error) {
         console.error('❌ Erro ao buscar categorias:', error);
+        // Fallback: usa categorias padrão se houver erro
+        setTodasCategorias(['outros', 'alimentacao', 'transporte', 'moradia', 'saude', 'educacao', 'lazer', 'compras']);
       }
     };
     buscarCategorias();
-  }, [usuario, todasTransacoesParaGraficos, filtros]);
+  }, [usuario]);
 
   // Agora sim, podemos fazer returns condicionais
   if (authLoading) {
@@ -376,10 +516,12 @@ function App() {
 
   const aplicarFiltros = () => {
     console.log('🔍 Aplicando filtros:', filtros);
-    setPaginaAtual(1); // Volta para a primeira página ao aplicar filtros
+    const pagina = 1; // Sempre volta para a primeira página ao aplicar filtros
+    setPaginaAtual(pagina);
     // Recarrega os dados imediatamente
     if (usuario) {
-      carregarDados(1);
+      console.log('🔄 Recarregando dados após aplicar filtros...');
+      carregarDados(pagina);
     }
   };
 
@@ -399,6 +541,8 @@ function App() {
     }
   };
 
+  // Encontra o template ativo para determinar qual ícone mostrar
+  const templateAtivo = templates.find((t: any) => t.ativo);
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${theme === 'dark' ? 'from-slate-900 to-slate-800' : 'from-slate-50 to-slate-100'}`}>
@@ -420,19 +564,127 @@ function App() {
             
             {/* Ações do header - compactas em mobile */}
             <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-3 flex-shrink-0">
-              {/* Botão Dark Mode */}
-              <motion.button
-                onClick={() => {
-                  console.log('🔘 Botão clicado, tema atual:', theme);
-                  toggleTheme();
-                }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`p-1 sm:p-1.5 lg:p-2 rounded-lg transition-colors flex-shrink-0 ${theme === 'dark' ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                title={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
-              >
-                {theme === 'light' ? <FaMoon size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" /> : <FaSun size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />}
-              </motion.button>
+              {/* Botão Templates (substitui o botão Dark Mode) */}
+              <div className="relative templates-dropdown-container">
+                <motion.button
+                  onClick={() => setTemplatesDropdownAberto(!templatesDropdownAberto)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className={`p-1 sm:p-1.5 lg:p-2 rounded-lg transition-colors flex-shrink-0 ${theme === 'dark' ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} ${templatesDropdownAberto ? 'ring-2 ring-primary-500' : ''}`}
+                  title="Escolher template de cores"
+                >
+                  {templateAtivo && templateAtivo.tipo === 'custom' ? (
+                    <FaPalette size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                  ) : theme === 'light' ? (
+                    <FaMoon size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                  ) : (
+                    <FaSun size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                  )}
+                </motion.button>
+
+                {/* Dropdown de Templates */}
+                {templatesDropdownAberto && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className={`absolute right-0 mt-2 w-64 rounded-lg shadow-xl border z-50 ${
+                      isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <div className="p-2">
+                      <div className={`px-3 py-2 text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Escolher Template
+                      </div>
+                      
+                      {carregandoTemplates ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : templates.length === 0 ? (
+                        <div className={`px-3 py-4 text-sm text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                          Nenhum template disponível
+                        </div>
+                      ) : (
+                        <div className="max-h-64 overflow-y-auto">
+                          {templates.map((template) => (
+                            <motion.button
+                              key={template.id}
+                              onClick={() => handleAtivarTemplate(template.id)}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              className={`w-full px-3 py-2.5 rounded-lg mb-1 text-left transition-colors ${
+                                template.ativo
+                                  ? isDark
+                                    ? 'bg-primary-500/20 border-2 border-primary-500'
+                                    : 'bg-primary-50 border-2 border-primary-600'
+                                  : isDark
+                                  ? 'hover:bg-slate-700 border-2 border-transparent'
+                                  : 'hover:bg-slate-50 border-2 border-transparent'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  {/* Preview das cores */}
+                                  <div className="flex gap-1 flex-shrink-0">
+                                    <div
+                                      className="w-4 h-4 rounded border"
+                                      style={{ backgroundColor: template.corPrimaria }}
+                                      title="Primária"
+                                    />
+                                    <div
+                                      className="w-4 h-4 rounded border"
+                                      style={{ backgroundColor: template.corSecundaria }}
+                                      title="Secundária"
+                                    />
+                                    <div
+                                      className="w-4 h-4 rounded border"
+                                      style={{ backgroundColor: template.corDestaque }}
+                                      title="Destaque"
+                                    />
+                                  </div>
+                                  <span className={`text-sm font-medium truncate ${
+                                    template.ativo
+                                      ? isDark ? 'text-white' : 'text-slate-900'
+                                      : isDark ? 'text-slate-300' : 'text-slate-700'
+                                  }`}>
+                                    {template.nome}
+                                  </span>
+                                </div>
+                                {template.ativo && (
+                                  <span className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${
+                                    isDark ? 'bg-green-900/20 text-green-400' : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    Ativo
+                                  </span>
+                                )}
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className={`mt-2 pt-2 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                        <motion.button
+                          onClick={() => {
+                            setTemplatesDropdownAberto(false);
+                            setConfiguracoesAberto(true);
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`w-full px-3 py-2 rounded-lg text-sm font-medium ${
+                            isDark
+                              ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          Gerenciar Templates
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
               
               {/* Botão de Configurações/Perfil */}
               <motion.button
