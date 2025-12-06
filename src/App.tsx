@@ -236,8 +236,8 @@ function App() {
   const handleAtivarTemplate = async (id: number) => {
     try {
       await ativarTemplate(id);
-      setTemplatesDropdownAberto(false);
-      showSuccess('Template ativado com sucesso!');
+      // O reload já é feito dentro do ativarTemplate do TemplateContext
+      // Não precisa fazer nada aqui, a página será recarregada
     } catch (error: any) {
       console.error('Erro ao ativar template:', error);
       showError(`Erro ao ativar: ${error.message}`);

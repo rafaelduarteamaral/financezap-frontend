@@ -170,26 +170,8 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
     try {
       const response = await api.ativarTemplate(id);
       if (response.success) {
-        // Aplica o template imediatamente usando o template retornado pela API
-        if (response.template) {
-          aplicarTemplate({
-            id: response.template.id,
-            nome: response.template.nome,
-            tipo: response.template.tipo,
-            corPrimaria: response.template.corPrimaria,
-            corSecundaria: response.template.corSecundaria,
-            corDestaque: response.template.corDestaque,
-            corFundo: response.template.corFundo,
-            corTexto: response.template.corTexto,
-            ativo: response.template.ativo,
-            criadoEm: ''
-          });
-        }
-        
-        // Recarrega templates para atualizar o estado
-        await carregarTemplates();
-        
-        showSuccess('Template ativado com sucesso!');
+        // Recarrega a página para aplicar o novo tema completamente
+        window.location.reload();
       } else {
         throw new Error(response.error || 'Erro ao ativar template');
       }

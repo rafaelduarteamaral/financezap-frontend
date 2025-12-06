@@ -139,6 +139,8 @@ export function TemplateProvider({ children }: { children: ReactNode }) {
       const response = await api.ativarTemplate(id);
       if (response.success) {
         await carregarTemplates();
+        // Recarrega a página para aplicar o novo tema completamente
+        window.location.reload();
       } else {
         throw new Error(response.error || 'Erro ao ativar template');
       }
