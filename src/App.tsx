@@ -20,7 +20,9 @@ import {
   FaWallet,
   FaCog,
   FaChevronDown,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaBars,
+  FaTimes
 } from 'react-icons/fa';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ChatIAPopup } from './components/ChatIAPopup';
@@ -58,6 +60,7 @@ function App() {
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias' | 'carteiras'>('dashboard');
   const [configuracoesAberto, setConfiguracoesAberto] = useState(false);
   const [usuarioDropdownAberto, setUsuarioDropdownAberto] = useState(false);
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
 
   // Função para remover duplicatas de transações
   const removerDuplicatas = (transacoes: Transacao[]): Transacao[] => {
@@ -442,14 +445,28 @@ function App() {
       <header className="bg-primary-500 shadow-lg">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-4">
-            {/* Logo à esquerda */}
+            {/* Logo e Botão Hambúrguer (Mobile) */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Botão Hambúrguer - Apenas Mobile */}
+              <motion.button
+                onClick={() => setMenuMobileAberto(!menuMobileAberto)}
+                whileTap={{ scale: 0.9 }}
+                className="sm:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Abrir menu"
+              >
+                {menuMobileAberto ? (
+                  <FaTimes size={20} />
+                ) : (
+                  <FaBars size={20} />
+                )}
+              </motion.button>
+              
               <Logo size={32} className="sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
               <h1 className="text-base sm:text-lg lg:text-xl font-bold text-white">Zela</h1>
             </div>
 
-            {/* Navegação centralizada */}
-            <nav className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-1 justify-center overflow-x-auto scrollbar-hide">
+            {/* Navegação centralizada - Apenas Desktop */}
+            <nav className="hidden sm:flex items-center gap-1 sm:gap-2 lg:gap-3 flex-1 justify-center overflow-x-auto scrollbar-hide">
               <motion.button
                 onClick={() => setAbaAtiva('dashboard')}
                 whileHover={{ scale: 1.05 }}
@@ -511,8 +528,8 @@ function App() {
               </motion.button>
             </nav>
 
-            {/* Seção do usuário à direita */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Seção do usuário à direita - Apenas Desktop */}
+            <div className="hidden sm:flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {/* Botão Dark/Light Mode */}
               <motion.button
                 onClick={toggleTheme}
@@ -610,6 +627,167 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Menu Mobile - Drawer Lateral */}
+      {menuMobileAberto && (
+        <>
+          {/* Overlay escuro */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMenuMobileAberto(false)}
+            className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+          />
+          
+          {/* Drawer */}
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className={`fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] z-50 shadow-2xl sm:hidden ${
+              isDark ? 'bg-slate-900' : 'bg-white'
+            }`}
+          >
+            <div className="flex flex-col h-full">
+              {/* Header do Drawer */}
+              <div className="bg-primary-500 px-4 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Logo size={32} />
+                  <h2 className="text-lg font-bold text-white">Zela</h2>
+                </div>
+                <motion.button
+                  onClick={() => setMenuMobileAberto(false)}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <FaTimes size={20} />
+                </motion.button>
+              </div>
+
+              {/* Informações do Usuário */}
+              {usuario && (
+                <div className={`px-4 py-4 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                  <div className="flex items-center gap-3">
+                    <Avatar 
+                      nome={usuario.nome} 
+                      telefone={usuario.telefone} 
+                      size={48}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {usuario.nome || formatarNumero(usuario.telefone)}
+                      </p>
+                      <p className={`text-xs truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {formatarNumero(usuario.telefone)}
+                      </p>
+                      {usuario.status === 'premium' && (
+                        <div className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded mt-1 inline-block">
+                          Premium
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Navegação */}
+              <nav className="flex-1 overflow-y-auto py-4">
+                <div className="space-y-1 px-2">
+                  {[
+                    { id: 'dashboard', label: 'Dashboard', icon: FaHome },
+                    { id: 'agendamentos', label: 'Agendamentos', icon: FaCalendar },
+                    { id: 'categorias', label: 'Categorias', icon: FaTags },
+                    { id: 'carteiras', label: 'Carteiras', icon: FaWallet },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const isActive = abaAtiva === item.id;
+                    return (
+                      <motion.button
+                        key={item.id}
+                        onClick={() => {
+                          setAbaAtiva(item.id as any);
+                          setMenuMobileAberto(false);
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                          isActive
+                            ? isDark 
+                              ? 'bg-primary-600 text-white' 
+                              : 'bg-primary-100 text-primary-700'
+                            : isDark
+                              ? 'text-slate-300 hover:bg-slate-800'
+                              : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Icon size={20} />
+                        <span className="font-medium">{item.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </nav>
+
+              {/* Footer do Drawer */}
+              <div className={`border-t px-4 py-4 space-y-2 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                {/* Botão Tema */}
+                <motion.button
+                  onClick={toggleTheme}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    isDark
+                      ? 'text-slate-300 hover:bg-slate-800'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  {isDark ? (
+                    <>
+                      <FaSun size={20} />
+                      <span className="font-medium">Modo Claro</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaMoon size={20} />
+                      <span className="font-medium">Modo Escuro</span>
+                    </>
+                  )}
+                </motion.button>
+
+                {/* Botão Configurações */}
+                <motion.button
+                  onClick={() => {
+                    setConfiguracoesAberto(true);
+                    setMenuMobileAberto(false);
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    isDark
+                      ? 'text-slate-300 hover:bg-slate-800'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <FaCog size={20} />
+                  <span className="font-medium">Configurações</span>
+                </motion.button>
+
+                {/* Botão Sair */}
+                <motion.button
+                  onClick={() => {
+                    setMenuMobileAberto(false);
+                    logout();
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <FaSignOutAlt size={20} />
+                  <span className="font-medium">Sair</span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
 
       {/* Banner de Trial */}
       {usuario && usuario.status === 'trial' && usuario.diasRestantesTrial !== null && usuario.diasRestantesTrial !== undefined && (
