@@ -16,7 +16,6 @@ import {
   Cell,
 } from 'recharts';
 import { FaSearch, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { AnimatedIcon } from './AnimatedIcon';
 import type { Transacao, Filtros } from '../config';
 import { capitalize } from '../utils/capitalize';
 import { ModalFormularioTransacao } from './ModalFormularioTransacao';
