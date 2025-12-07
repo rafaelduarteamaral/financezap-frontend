@@ -434,7 +434,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
       {/* Prompt de Instalação PWA */}
       <InstallPrompt />
       
@@ -613,7 +613,7 @@ function App() {
 
       {/* Banner de Trial */}
       {usuario && usuario.status === 'trial' && usuario.diasRestantesTrial !== null && usuario.diasRestantesTrial !== undefined && (
-        <div className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-2 sm:pt-4 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+        <div className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-2 sm:pt-4 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
