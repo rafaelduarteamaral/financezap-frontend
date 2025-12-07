@@ -259,13 +259,13 @@ export function Dashboard({
   return (
     <>
       {/* Novos Filtros */}
-      <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+      <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${isDark ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white'}`}
             >
               <FaCalendarAlt size={16} />
               Data De Vencimento
@@ -281,7 +281,7 @@ export function Dashboard({
                 <FaArrowLeft className={isDark ? 'text-slate-300' : 'text-slate-700'} size={16} />
               </motion.button>
               
-              <span className={`text-base font-semibold min-w-[120px] text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <span className={`text-base font-semibold min-w-[120px] text-center ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>
                 {format(periodoSelecionado, 'MMMM', { locale: ptBR })}
               </span>
               
@@ -303,7 +303,7 @@ export function Dashboard({
               onClick={() => aplicarFiltroRapido('hoje')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
                 filtroRapidoAtivo === 'hoje'
-                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  ? isDark ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white'
                   : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
               }`}
             >
@@ -315,7 +315,7 @@ export function Dashboard({
               onClick={() => aplicarFiltroRapido('7dias')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
                 filtroRapidoAtivo === '7dias'
-                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  ? isDark ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white'
                   : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
               }`}
             >
@@ -327,7 +327,7 @@ export function Dashboard({
               onClick={() => aplicarFiltroRapido('mes')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
                 filtroRapidoAtivo === 'mes'
-                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  ? isDark ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white'
                   : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
               }`}
             >
@@ -339,7 +339,7 @@ export function Dashboard({
               onClick={() => aplicarFiltroRapido('ano')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
                 filtroRapidoAtivo === 'ano'
-                  ? isDark ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  ? isDark ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white'
                   : isDark ? 'bg-white hover:bg-slate-100 text-slate-900 border border-slate-300' : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-300'
               }`}
             >
@@ -387,17 +387,17 @@ export function Dashboard({
       {/* Cards de Resumo Financeiro */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6 lg:mb-8">
         {/* Saldo Do Periodo Anterior */}
-        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <FaChartLine className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
-              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Saldo Do Periodo Anterior</h3>
+              <FaChartLine className={isDark ? 'text-primary-400' : 'text-primary-500'} size={20} />
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>Saldo Do Periodo Anterior</h3>
             </div>
           </div>
-          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-primary-400' : 'text-primary-500'}`}>
             {formatarMoeda(saldoAnterior)}
           </p>
-          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'}`}>
             Até {format(subDays(new Date(filtros.dataInicio ? new Date(filtros.dataInicio) : new Date()), 1), 'dd \'De\' MMMM', { locale: ptBR })}
           </p>
           <motion.button
@@ -414,26 +414,26 @@ export function Dashboard({
                 <span className={`text-xs sm:text-sm ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>Pendências</span>
                 <span className={`text-sm font-semibold ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>R$ 0,00</span>
               </div>
-              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
-                <span className={`text-xs sm:text-sm ${isDark ? 'text-green-300' : 'text-green-700'}`}>Disponível</span>
-                <span className={`text-sm font-semibold ${isDark ? 'text-green-300' : 'text-green-700'}`}>R$ 0,00</span>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-primary-900/20' : 'bg-primary-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-primary-300' : 'text-primary-700'}`}>Disponível</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-primary-300' : 'text-primary-700'}`}>R$ 0,00</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Receitas */}
-        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FaArrowUp className={isDark ? 'text-green-400' : 'text-green-600'} size={20} />
-              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Receitas</h3>
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>Receitas</h3>
             </div>
           </div>
-          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-primary-400' : 'text-primary-500'}`}>
             {formatarMoeda(receitas)}
           </p>
-          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'}`}>
             {formatarPeriodo()}
           </p>
           <motion.button
@@ -459,17 +459,17 @@ export function Dashboard({
         </div>
 
         {/* Despesas */}
-        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FaArrowDown className={isDark ? 'text-red-400' : 'text-red-600'} size={20} />
-              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Despesas</h3>
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>Despesas</h3>
             </div>
           </div>
           <p className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
             {formatarMoeda(despesas)}
           </p>
-          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'}`}>
             {formatarPeriodo()}
           </p>
           <motion.button
@@ -482,9 +482,9 @@ export function Dashboard({
           </motion.button>
           {cardsExpandidos.despesas && (
             <div className="mt-3 space-y-2">
-              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
-                <span className={`text-xs sm:text-sm ${isDark ? 'text-green-300' : 'text-green-700'}`}>Pago</span>
-                <span className={`text-sm font-semibold ${isDark ? 'text-green-300' : 'text-green-700'}`}>{formatarMoeda(despesas)}</span>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-primary-900/20' : 'bg-primary-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-primary-300' : 'text-primary-700'}`}>Pago</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-primary-300' : 'text-primary-700'}`}>{formatarMoeda(despesas)}</span>
               </div>
               <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-orange-900/20' : 'bg-orange-50'}`}>
                 <span className={`text-xs sm:text-sm ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>A Pagar</span>
@@ -495,17 +495,17 @@ export function Dashboard({
         </div>
 
         {/* Saldo Previsto */}
-        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <FaChartLine className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
-              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Saldo Previsto</h3>
+              <FaChartLine className={isDark ? 'text-primary-400' : 'text-primary-500'} size={20} />
+              <h3 className={`text-sm sm:text-base font-semibold ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>Saldo Previsto</h3>
             </div>
           </div>
-          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${saldoPrevisto >= 0 ? (isDark ? 'text-blue-400' : 'text-blue-600') : (isDark ? 'text-red-400' : 'text-red-600')}`}>
+          <p className={`text-2xl sm:text-3xl font-bold mb-2 ${saldoPrevisto >= 0 ? (isDark ? 'text-primary-400' : 'text-primary-500') : (isDark ? 'text-red-400' : 'text-red-600')}`}>
             {formatarMoeda(saldoPrevisto)}
           </p>
-          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'}`}>
             Até {format(new Date(filtros.dataFim || new Date()), 'dd \'De\' MMMM', { locale: ptBR })}
           </p>
           <motion.button
@@ -522,9 +522,9 @@ export function Dashboard({
                 <span className={`text-xs sm:text-sm ${isDark ? 'text-red-300' : 'text-red-700'}`}>Disponível</span>
                 <span className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-700'}`}>{formatarMoeda(saldoPrevisto)}</span>
               </div>
-              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
-                <span className={`text-xs sm:text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Previsto</span>
-                <span className={`text-sm font-semibold ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>{formatarMoeda(saldoPrevisto)}</span>
+              <div className={`flex justify-between items-center p-2 rounded ${isDark ? 'bg-primary-900/20' : 'bg-primary-50'}`}>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-primary-300' : 'text-primary-700'}`}>Previsto</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-primary-300' : 'text-primary-700'}`}>{formatarMoeda(saldoPrevisto)}</span>
               </div>
             </div>
           )}
@@ -533,9 +533,9 @@ export function Dashboard({
 
       {/* Filtros Avançados (mantidos para compatibilidade) */}
       <div className={`rounded-lg sm:rounded-xl shadow-sm p-2.5 sm:p-4 lg:p-6 mb-3 sm:mb-4 lg:mb-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-        <h2 className={`text-sm sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+        <h2 className={`text-sm sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-1.5 sm:gap-2 ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>
           <AnimatedIcon>
-            <FaSearch className={`${isDark ? 'text-slate-400' : 'text-slate-600'} w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5`} />
+            <FaSearch className={`${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'} w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5`} />
           </AnimatedIcon>
           Filtros Avançados
         </h2>
@@ -639,7 +639,7 @@ export function Dashboard({
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 lg:mb-8">
         {/* Gráfico de Status Financeiro - Entradas vs Saídas */}
-        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <h3 className={`text-base sm:text-lg font-semibold mb-3 sm:mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Status Financeiro</h3>
           <div className="w-full h-[250px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -848,7 +848,7 @@ export function Dashboard({
       {/* Gráfico de Categorias de Entradas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Gráfico de Pizza - Top Categorias de Entradas */}
-        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <h3 className={`text-base sm:text-lg font-semibold mb-3 sm:mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Top 5 Categorias - Entradas</h3>
           <div className="w-full h-[250px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -991,7 +991,7 @@ export function Dashboard({
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             transacao.metodo === 'credito'
-                              ? isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
+                              ? isDark ? 'bg-primary-900 text-primary-200' : 'bg-primary-100 text-primary-800'
                               : isDark ? 'bg-purple-900 text-purple-200' : 'bg-purple-100 text-purple-800'
                           }`}>
                             {transacao.metodo === 'credito' ? 'Crédito' : 'Débito'}
@@ -1086,7 +1086,7 @@ export function Dashboard({
                       </span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         transacao.metodo === 'credito'
-                          ? isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
+                              ? isDark ? 'bg-primary-900 text-primary-200' : 'bg-primary-100 text-primary-800'
                           : isDark ? 'bg-purple-900 text-purple-200' : 'bg-purple-100 text-purple-800'
                       }`}>
                         {transacao.metodo === 'credito' ? 'Crédito' : 'Débito'}

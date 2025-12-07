@@ -4,98 +4,59 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Habilita dark mode via classe
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // 🌱 Cores principais da marca
-        brand: {
-          DEFAULT: "#00C853", // Verde principal
-          light: "#69F0AE",   // Verde mais claro (hover, backgrounds suaves)
-          dark: "#00953D",    // Verde mais escuro (borders, foco)
-        },
-
-        // 🟡 Ouro / destaque financeiro
-        gold: {
-          DEFAULT: "#E5C07B",
-          light: "#F3D9A4",
-          dark: "#B39553",
-          50: '#faf7ed',
-          100: '#f5efdb',
-          200: '#ebdfb7',
-          300: '#e1cf93',
-          400: '#d7bf6f',
-          500: '#E5C07B',
-          600: '#B39553',
-          700: '#806921',
-          800: '#554616',
-          900: '#2a230b',
-        },
-
-        // ⚫ Neutros para fundo / textos / cards
-        neutral: {
-          950: "#050505",
-          900: "#121212", // grafite (background principal dark)
-          800: "#1E1E1E",
-          700: "#2D2D2D", // cards escuros
-          600: "#3C3C3C",
-          500: "#6E6E6E",
-          400: "#9E9E9E",
-          300: "#C4C4C4",
-          200: "#DCDCDC",
-          100: "#EDEDED", // fundo claro
-          50:  "#F7F7F7", // quase branco
-        },
-        
-        // Slate com variáveis CSS dinâmicas para templates
-        slate: {
-          50: 'var(--color-slate-50, #F7F7F7)',
-          100: 'var(--color-slate-100, #EDEDED)',
-          200: 'var(--color-slate-200, #DCDCDC)',
-          300: 'var(--color-slate-300, #C4C4C4)',
-          400: 'var(--color-slate-400, #9E9E9E)',
-          500: 'var(--color-slate-500, #6E6E6E)',
-          600: 'var(--color-slate-600, #3C3C3C)',
-          700: 'var(--color-slate-700, #2D2D2D)',
-          800: 'var(--color-slate-800, #1E1E1E)',
-          900: 'var(--color-slate-900, #121212)',
-          950: 'var(--color-slate-950, #050505)',
-        },
-
-        // 🎯 Cores de status (dashboard financeiro, alertas, etc.)
-        status: {
-          success: "#00C853", // pode usar igual brand
-          warning: "#FFB400",
-          danger:  "#E53935",
-          info:    "#0288D1",
-        },
-
-        // 🧊 Extras tecnológicos (pra detalhes, gráficos, etc.)
-        tech: {
-          cyan: "#00F5D4",
-          blue: "#0A2342",
-        },
-
-        // Mantém primary para compatibilidade com código existente
-        // Usa variáveis CSS dinâmicas para permitir mudança de templates
+        // Tema de cores baseado no design fornecido
         primary: {
-          DEFAULT: 'var(--color-primary-500, #00C853)',
-          light: 'var(--color-primary-light, #69F0AE)',
-          dark: 'var(--color-primary-dark, #00953D)',
-          50: 'var(--color-primary-50, #e6f5eb)',
-          100: 'var(--color-primary-100, #ccebd7)',
-          200: 'var(--color-primary-200, #99d7af)',
-          300: 'var(--color-primary-300, #66c387)',
-          400: 'var(--color-primary-400, #33af5f)',
-          500: 'var(--color-primary-500, #00C853)',
-          600: 'var(--color-primary-600, #00953D)',
-          700: 'var(--color-primary-700, #00782d)',
-          800: 'var(--color-primary-800, #005922)',
-          900: 'var(--color-primary-900, #003a17)',
+          // Verde lima/chartreuse (primário)
+          DEFAULT: 'hsl(80, 75%, 55%)',
+          50: 'hsl(80, 75%, 95%)',
+          100: 'hsl(80, 75%, 90%)',
+          200: 'hsl(80, 75%, 80%)',
+          300: 'hsl(80, 75%, 70%)',
+          400: 'hsl(80, 75%, 60%)',
+          500: 'hsl(80, 75%, 55%)',
+          600: 'hsl(80, 75%, 45%)',
+          700: 'hsl(80, 60%, 40%)', // Verde oliva
+          800: 'hsl(80, 60%, 35%)',
+          900: 'hsl(80, 60%, 30%)',
+        },
+        teal: {
+          // Verde escuro/teal
+          DEFAULT: 'hsl(160, 70%, 25%)',
+          50: 'hsl(160, 70%, 95%)',
+          100: 'hsl(160, 70%, 90%)',
+          200: 'hsl(160, 70%, 80%)',
+          300: 'hsl(160, 70%, 70%)',
+          400: 'hsl(160, 70%, 60%)',
+          500: 'hsl(160, 70%, 50%)',
+          600: 'hsl(160, 70%, 40%)',
+          700: 'hsl(160, 70%, 30%)',
+          800: 'hsl(160, 70%, 25%)',
+          900: 'hsl(160, 70%, 20%)',
+        },
+        mint: {
+          // Verde menta suave
+          DEFAULT: 'hsl(140, 50%, 95%)',
+          50: 'hsl(140, 50%, 98%)',
+          100: 'hsl(140, 50%, 96%)',
+          200: 'hsl(140, 50%, 95%)',
+          300: 'hsl(140, 50%, 90%)',
+          400: 'hsl(140, 50%, 85%)',
+        },
+        gray: {
+          // Cores de cinza customizadas
+          light: 'hsl(120, 10%, 96%)', // Cinza claro - fundos de cards sutis
+          DEFAULT: 'hsl(220, 10%, 50%)', // Cinza médio - textos secundários
+          dark: 'hsl(220, 15%, 20%)', // Cinza escuro - textos principais
+        },
+        white: {
+          DEFAULT: 'hsl(0, 0%, 100%)', // Branco puro
         },
       },
     },
   },
   plugins: [],
 }
-

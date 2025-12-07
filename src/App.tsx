@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
-import { useTemplate } from './contexts/TemplateContext';
 import { useToast } from './contexts/ToastContext';
 import { Login } from './components/Login';
 import { api } from './services/api';
 import type { Transacao, Estatisticas, Filtros } from './config';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { 
   FaChartLine, 
   FaCreditCard, 
@@ -17,7 +14,13 @@ import {
   FaSun,
   FaExclamationTriangle,
   FaGift,
-  FaPalette
+  FaHome,
+  FaCalendar,
+  FaTags,
+  FaWallet,
+  FaCog,
+  FaChevronDown,
+  FaSignOutAlt
 } from 'react-icons/fa';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ChatIAPopup } from './components/ChatIAPopup';
@@ -36,10 +39,9 @@ import { motion } from 'framer-motion';
 
 function App() {
   const { isAuthenticated, usuario, logout, loading: authLoading, token } = useAuth();
-  const { theme } = useTheme();
-  const { templates, templateAtivo, carregando: carregandoTemplates, carregarTemplates, ativarTemplate } = useTemplate();
+  const { theme, toggleTheme } = useTheme();
   const { showSuccess, showError, confirm, toasts, closeToast, confirmOptions, isConfirmOpen, closeConfirm } = useToast();
-  const isDark = theme === 'dark' || (templateAtivo?.tipo === 'dark');
+  const isDark = theme === 'dark';
   
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas | null>(null);
@@ -55,7 +57,7 @@ function App() {
   const [todasTransacoesParaGraficos, setTodasTransacoesParaGraficos] = useState<Transacao[]>([]);
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias' | 'carteiras'>('dashboard');
   const [configuracoesAberto, setConfiguracoesAberto] = useState(false);
-  const [templatesDropdownAberto, setTemplatesDropdownAberto] = useState(false);
+  const [usuarioDropdownAberto, setUsuarioDropdownAberto] = useState(false);
 
   // Função para remover duplicatas de transações
   const removerDuplicatas = (transacoes: Transacao[]): Transacao[] => {
@@ -232,44 +234,20 @@ function App() {
     }
   };
 
-  // Ativa um template
-  const handleAtivarTemplate = async (id: number) => {
-    try {
-      await ativarTemplate(id);
-      // O reload já é feito dentro do ativarTemplate do TemplateContext
-      // Não precisa fazer nada aqui, a página será recarregada
-    } catch (error: any) {
-      console.error('Erro ao ativar template:', error);
-      showError(`Erro ao ativar: ${error.message}`);
-    }
-  };
-
-  // TODOS os hooks devem ser chamados ANTES de qualquer return condicional
-  // Carrega template ativo quando o usuário faz login
-  useEffect(() => {
-    if (isAuthenticated && usuario && !authLoading) {
-      carregarTemplates();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, usuario, authLoading]);
-  
-  // O TemplateContext agora usa MutationObserver para detectar mudanças no DOM
-  // Não precisamos mais reaplicar manualmente aqui
-
   // Fecha dropdown quando clica fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (templatesDropdownAberto && !target.closest('.templates-dropdown-container')) {
-        setTemplatesDropdownAberto(false);
+      if (!target.closest('.usuario-dropdown-container')) {
+        setUsuarioDropdownAberto(false);
       }
     };
 
-    if (templatesDropdownAberto) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [templatesDropdownAberto]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Carrega dados quando o usuário faz login
   useEffect(() => {
@@ -460,314 +438,214 @@ function App() {
       {/* Prompt de Instalação PWA */}
       <InstallPrompt />
       
-      {/* Header */}
-      <header className="shadow-sm border-b bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-3 lg:py-6">
-          {/* Linha superior: Logo e ações */}
-          <div className="flex items-center justify-between mb-2 sm:mb-3 lg:mb-4 gap-1.5 sm:gap-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-1 min-w-0">
-              <Logo size={36} className="sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" />
-              <div className="min-w-0 flex-1">
-                <h1 className="text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate text-slate-900 dark:text-white">Zela</h1>
-                <p className="text-[9px] sm:text-xs lg:text-sm mt-0.5 hidden sm:block text-slate-600 dark:text-slate-400">Dashboard Administrativo</p>
-              </div>
+      {/* Header - Estilo Moderno com Verde Lima */}
+      <header className="bg-primary-500 shadow-lg">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo à esquerda */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <Logo size={32} className="sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+              <h1 className="text-base sm:text-lg lg:text-xl font-bold text-white">Zela</h1>
             </div>
-            
-            {/* Ações do header - compactas em mobile */}
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-3 flex-shrink-0">
-              {/* Botão Templates (substitui o botão Dark Mode) */}
-              <div className="relative templates-dropdown-container">
+
+            {/* Navegação centralizada */}
+            <nav className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-1 justify-center overflow-x-auto scrollbar-hide">
+              <motion.button
+                onClick={() => setAbaAtiva('dashboard')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
+                  abaAtiva === 'dashboard'
+                    ? 'bg-white text-slate-900 shadow-md'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                <FaHome size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Home</span>
+              </motion.button>
+
+              <motion.button
+                onClick={() => setAbaAtiva('agendamentos')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
+                  abaAtiva === 'agendamentos'
+                    ? 'bg-white text-[hsl(220,15%,20%)] shadow-md'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                <FaCalendar size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Agendamentos</span>
+                <span className="sm:hidden">Agenda</span>
+              </motion.button>
+
+              <motion.button
+                onClick={() => setAbaAtiva('categorias')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
+                  abaAtiva === 'categorias'
+                    ? 'bg-white text-[hsl(220,15%,20%)] shadow-md'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                <FaTags size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Categorias</span>
+                <span className="sm:hidden">Cats</span>
+              </motion.button>
+
+              <motion.button
+                onClick={() => setAbaAtiva('carteiras')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
+                  abaAtiva === 'carteiras'
+                    ? 'bg-white text-[hsl(220,15%,20%)] shadow-md'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                <FaWallet size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Carteiras</span>
+                <span className="sm:hidden">Carteira</span>
+              </motion.button>
+            </nav>
+
+            {/* Seção do usuário à direita */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Botão Dark/Light Mode */}
+              <motion.button
+                onClick={toggleTheme}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-lg transition-colors flex-shrink-0 text-white hover:bg-white/10"
+                title={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
+              >
+                {isDark ? (
+                  <FaSun size={16} className="sm:w-5 sm:h-5" />
+                ) : (
+                  <FaMoon size={16} className="sm:w-5 sm:h-5" />
+                )}
+              </motion.button>
+
+              {/* Dropdown do Usuário */}
+              <div className="relative usuario-dropdown-container">
                 <motion.button
-                  onClick={() => setTemplatesDropdownAberto(!templatesDropdownAberto)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className={`p-1 sm:p-1.5 lg:p-2 rounded-lg transition-colors flex-shrink-0 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 ${templatesDropdownAberto ? 'ring-2 ring-primary-500' : ''}`}
-                  title="Escolher template de cores"
+                  onClick={() => {
+                    setUsuarioDropdownAberto(!usuarioDropdownAberto);
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 text-white hover:bg-white/10 rounded-lg px-2 py-1.5 transition-colors"
                 >
-                  {templateAtivo && templateAtivo.tipo === 'custom' ? (
-                    <FaPalette size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                  ) : templateAtivo && templateAtivo.tipo === 'dark' ? (
-                    <FaSun size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                  ) : (
-                    <FaMoon size={14} className="sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                  <Avatar 
+                    nome={usuario?.nome} 
+                    telefone={usuario?.telefone} 
+                    size={28}
+                    className="cursor-pointer sm:w-8 sm:h-8"
+                  />
+                  {usuario && (
+                    <div className="hidden sm:block text-left">
+                      <div className="text-xs font-medium text-white">
+                        {usuario.nome || formatarNumero(usuario.telefone)}
+                      </div>
+                      {usuario.status === 'premium' && (
+                        <div className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                          Premium
+                        </div>
+                      )}
+                    </div>
                   )}
+                  <FaChevronDown size={12} className="hidden sm:block" />
                 </motion.button>
 
-                {/* Dropdown de Templates */}
-                {templatesDropdownAberto && (
+                {/* Dropdown Menu do Usuário */}
+                {usuarioDropdownAberto && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className={`absolute right-0 mt-2 w-64 rounded-lg shadow-xl border z-50 ${
-                      isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-                    }`}
+                    className="absolute right-0 mt-2 w-56 rounded-lg shadow-xl border z-50 bg-white border-slate-200"
                   >
                     <div className="p-2">
-                      <div className={`px-3 py-2 text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Escolher Template
+                      <div className="px-3 py-2 border-b border-slate-200">
+                        <div className="text-sm font-medium text-slate-900">
+                          {usuario?.nome || formatarNumero(usuario?.telefone || '')}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {formatarNumero(usuario?.telefone || '')}
+                        </div>
                       </div>
                       
-                      {carregandoTemplates ? (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      ) : templates.length === 0 ? (
-                        <div className={`px-3 py-4 text-sm text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                          Nenhum template disponível
-                        </div>
-                      ) : (
-                        <div className="max-h-64 overflow-y-auto">
-                          {templates.map((template) => (
-                            <motion.button
-                              key={template.id}
-                              onClick={() => handleAtivarTemplate(template.id)}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className={`w-full px-3 py-2.5 rounded-lg mb-1 text-left transition-colors ${
-                                template.ativo
-                                  ? isDark
-                                    ? 'bg-primary-500/20 border-2 border-primary-500'
-                                    : 'bg-primary-50 border-2 border-primary-600'
-                                  : isDark
-                                  ? 'hover:bg-slate-700 border-2 border-transparent'
-                                  : 'hover:bg-slate-50 border-2 border-transparent'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  {/* Preview das cores apenas para templates personalizados */}
-                                  {template.tipo === 'custom' ? (
-                                    <div className="flex gap-1 flex-shrink-0">
-                                      <div
-                                        className="w-4 h-4 rounded border"
-                                        style={{ backgroundColor: template.corPrimaria }}
-                                        title="Primária"
-                                      />
-                                      <div
-                                        className="w-4 h-4 rounded border"
-                                        style={{ backgroundColor: template.corSecundaria }}
-                                        title="Secundária"
-                                      />
-                                      <div
-                                        className="w-4 h-4 rounded border"
-                                        style={{ backgroundColor: template.corDestaque }}
-                                        title="Destaque"
-                                      />
-                                    </div>
-                                  ) : (
-                                    /* Ícone para templates padrão */
-                                    <div className="flex-shrink-0">
-                                      {template.tipo === 'dark' ? (
-                                        <FaMoon size={14} className="text-slate-600 dark:text-slate-300" />
-                                      ) : (
-                                        <FaSun size={14} className="text-slate-600 dark:text-slate-300" />
-                                      )}
-                                    </div>
-                                  )}
-                                  <span className={`text-sm font-medium truncate ${
-                                    template.ativo
-                                      ? isDark ? 'text-white' : 'text-slate-900'
-                                      : isDark ? 'text-slate-300' : 'text-slate-700'
-                                  }`}>
-                                    {template.nome}
-                                  </span>
-                                </div>
-                                {template.ativo && (
-                                  <span className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${
-                                    isDark ? 'bg-green-900/20 text-green-400' : 'bg-green-100 text-green-700'
-                                  }`}>
-                                    Ativo
-                                  </span>
-                                )}
-                              </div>
-                            </motion.button>
-                          ))}
-                        </div>
-                      )}
+                      <motion.button
+                        onClick={() => {
+                          setUsuarioDropdownAberto(false);
+                          setConfiguracoesAberto(true);
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full px-3 py-2.5 rounded-lg text-left text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <FaCog size={14} />
+                        <span>Configurações</span>
+                      </motion.button>
                       
-                      <div className={`mt-2 pt-2 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                        <motion.button
-                          onClick={() => {
-                            setTemplatesDropdownAberto(false);
-                            setConfiguracoesAberto(true);
-                          }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={`w-full px-3 py-2 rounded-lg text-sm font-medium ${
-                            isDark
-                              ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          Gerenciar Templates
-                        </motion.button>
-                      </div>
+                      <motion.button
+                        onClick={() => {
+                          setUsuarioDropdownAberto(false);
+                          logout();
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full px-3 py-2.5 rounded-lg text-left text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 mt-1"
+                      >
+                        <FaSignOutAlt size={14} />
+                        <span>Sair</span>
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}
               </div>
-              
-              {/* Botão de Configurações/Perfil */}
-              <motion.button
-                onClick={() => setConfiguracoesAberto(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="rounded-full transition-all hover:ring-2 hover:ring-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 flex-shrink-0"
-                title="Configurações da conta"
-              >
-                <Avatar 
-                  nome={usuario?.nome} 
-                  telefone={usuario?.telefone} 
-                  size={24}
-                  className="cursor-pointer sm:w-9 sm:h-9 lg:w-10 lg:h-10"
-                />
-              </motion.button>
-              
-              {/* Informações do usuário - completamente ocultas em mobile */}
-              {usuario && (
-                <div className="text-right hidden xl:block">
-                  <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conectado Como</div>
-                  <div className={`text-xs font-medium truncate max-w-[120px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {formatarNumero(usuario.telefone)}
-                  </div>
-                </div>
-              )}
-              
-              {/* Botão Sair */}
-              <motion.button
-                onClick={logout}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`px-1.5 sm:px-2.5 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg transition-colors font-medium text-[10px] sm:text-xs lg:text-sm shadow-sm flex-shrink-0 ${
-                  isDark
-                    ? 'bg-red-900/20 text-red-400 hover:bg-red-900/30 border border-red-800'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100'
-                }`}
-              >
-                <span className="hidden sm:inline">Sair</span>
-                <span className="sm:hidden text-xs">✕</span>
-              </motion.button>
-              </div>
-          </div>
-              
-              {/* Abas de navegação */}
-          <div className="flex gap-1 sm:gap-1.5 lg:gap-2 overflow-x-auto pb-1 -mx-2 sm:-mx-4 lg:-mx-8 px-2 sm:px-4 lg:px-8 scrollbar-hide">
-                <motion.button
-                  onClick={() => setAbaAtiva('dashboard')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-              className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-[11px] sm:text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                    abaAtiva === 'dashboard'
-                      ? isDark
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-primary-600 text-white'
-                      : isDark
-                      ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Dashboard
-                </motion.button>
-                <motion.button
-                  onClick={() => setAbaAtiva('agendamentos')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-              className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-[11px] sm:text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                    abaAtiva === 'agendamentos'
-                      ? isDark
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-primary-600 text-white'
-                      : isDark
-                      ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Agendamentos
-                </motion.button>
-                <motion.button
-                  onClick={() => setAbaAtiva('categorias')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-              className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-[11px] sm:text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                    abaAtiva === 'categorias'
-                      ? isDark
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-primary-600 text-white'
-                      : isDark
-                      ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Categorias
-                </motion.button>
-                <motion.button
-                  onClick={() => setAbaAtiva('carteiras')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-              className={`px-2.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-[11px] sm:text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                    abaAtiva === 'carteiras'
-                      ? isDark
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-primary-600 text-white'
-                      : isDark
-                      ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Carteiras
-                </motion.button>
-              </div>
-          
-          {/* Informações adicionais - apenas em desktop grande */}
-              {usuario && (
-            <div className="hidden xl:flex items-center justify-end gap-4 mt-2">
-                <div className="text-right">
-                <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conectado Como</div>
-                <div className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {formatarNumero(usuario.telefone)}
-                  </div>
-                </div>
-              <div className="text-right">
-                <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Última Atualização</div>
-                <div className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </div>
-              </div>
             </div>
-          )}
+          </div>
         </div>
       </header>
 
       {/* Banner de Trial */}
       {usuario && usuario.status === 'trial' && usuario.diasRestantesTrial !== null && usuario.diasRestantesTrial !== undefined && (
-        <div className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-2 sm:pt-4`}>
+        <div className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-2 sm:pt-4 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`rounded-lg p-3 sm:p-4 border-2 ${
               usuario.diasRestantesTrial <= 3
-                ? 'border-amber-400 dark:border-amber-600'
-                : 'border-green-500 dark:border-green-600'
-            } bg-transparent`}
+                ? isDark ? 'border-amber-600 bg-amber-900/20' : 'border-amber-400 bg-amber-50'
+                : isDark ? 'border-primary-600 bg-primary-900/20' : 'border-primary-500 bg-mint-200'
+            }`}
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 sm:gap-3 flex-1">
                 <div className="flex-shrink-0">
                   {usuario.diasRestantesTrial <= 3 ? (
-                    <FaExclamationTriangle className="text-slate-900 dark:text-white" size={14} />
+                    <FaExclamationTriangle 
+                      className={isDark ? 'text-amber-400' : 'text-amber-600'} 
+                      size={14} 
+                    />
                   ) : (
-                    <FaGift className="text-slate-900 dark:text-white" size={14} />
+                    <FaGift 
+                      className={isDark ? 'text-green-400' : 'text-green-600'} 
+                      size={14} 
+                    />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-white">
+                  <p className={`text-sm sm:text-base font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {usuario.diasRestantesTrial <= 3
                       ? `Seu trial expira em ${usuario.diasRestantesTrial} ${usuario.diasRestantesTrial === 1 ? 'dia' : 'dias'}!`
                       : `Trial ativo: ${usuario.diasRestantesTrial} ${usuario.diasRestantesTrial === 1 ? 'dia restante' : 'dias restantes'}`
                     }
                   </p>
-                  <p className="text-xs sm:text-sm mt-1 text-slate-600 dark:text-slate-300">
+                  <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     {usuario.diasRestantesTrial <= 3
                       ? 'Assine um plano para continuar usando o sistema após o período de trial.'
                       : 'Após o período de trial, você precisará assinar um plano para continuar.'
@@ -789,7 +667,7 @@ function App() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6 lg:py-8">
+      <main className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6 lg:py-8 ${isDark ? 'bg-slate-900' : 'bg-white'} min-h-screen`}>
         {/* Cards de Estatísticas */}
         {estatisticas && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
@@ -798,17 +676,17 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}
             >
               <div className="flex items-center justify-between mb-1 sm:mb-2">
-                <p className={`text-xs sm:text-sm font-medium truncate pr-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total Gasto</p>
+                <p className={`text-xs sm:text-sm font-medium truncate pr-1 ${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'}`}>Total Gasto</p>
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <AnimatedIcon delay={0.1}>
-                    <FaChartLine className="text-primary-600 w-3 h-3 sm:w-4 sm:h-4" />
+                    <FaChartLine className="text-primary-500 w-3 h-3 sm:w-4 sm:h-4" />
                   </AnimatedIcon>
                 </div>
               </div>
-              <p className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <p className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>
                 {formatarMoeda(estatisticas.totalGasto)}
               </p>
             </motion.div>
@@ -818,10 +696,10 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.2 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}
             >
               <div className="flex items-center justify-between mb-1 sm:mb-2">
-                <p className={`text-xs sm:text-sm font-medium truncate pr-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Total Transações</p>
+                <p className={`text-xs sm:text-sm font-medium truncate pr-1 ${isDark ? 'text-slate-400' : 'text-[hsl(220,10%,50%)]'}`}>Total Transações</p>
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gold-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <AnimatedIcon delay={0.2}>
                     <FaCreditCard className="text-gold-600 w-3 h-3 sm:w-4 sm:h-4" />
@@ -838,7 +716,7 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.3 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}
             >
               <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <p className={`text-xs sm:text-sm font-medium truncate pr-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Gasto Hoje</p>
@@ -848,7 +726,7 @@ function App() {
                   </AnimatedIcon>
                 </div>
               </div>
-              <p className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <p className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>
                 {formatarMoeda(estatisticas.gastoHoje)}
               </p>
             </motion.div>
@@ -858,7 +736,7 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.4 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+              className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 lg:p-6 border hover:shadow-md transition-shadow ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}
             >
               <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <p className={`text-xs sm:text-sm font-medium truncate pr-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Média por Transação</p>
@@ -868,7 +746,7 @@ function App() {
                   </AnimatedIcon>
                 </div>
               </div>
-              <p className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <p className={`text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate ${isDark ? 'text-white' : 'text-[hsl(220,15%,20%)]'}`}>
                 {formatarMoeda(estatisticas.mediaGasto)}
               </p>
             </motion.div>
@@ -876,20 +754,15 @@ function App() {
         )}
 
         {/* Conteúdo baseado na aba ativa */}
-        {(() => {
-          // Verifica se há template custom ativo - se sim, não usa isDark
-          const usarIsDark = !templateAtivo || templateAtivo.tipo !== 'custom';
-          const isDarkParaComponentes = usarIsDark ? isDark : false;
-          
-          return abaAtiva === 'agendamentos' ? (
-            <Agendamentos isDark={isDarkParaComponentes} />
-          ) : abaAtiva === 'categorias' ? (
-            <Categorias isDark={isDarkParaComponentes} />
-          ) : abaAtiva === 'carteiras' ? (
-            <Carteiras isDark={isDarkParaComponentes} />
-          ) : (
-            <Dashboard
-              isDark={isDarkParaComponentes}
+        {abaAtiva === 'agendamentos' ? (
+          <Agendamentos isDark={isDark} />
+        ) : abaAtiva === 'categorias' ? (
+          <Categorias isDark={isDark} />
+        ) : abaAtiva === 'carteiras' ? (
+          <Carteiras isDark={isDark} />
+        ) : (
+          <Dashboard
+            isDark={isDark}
             filtros={filtros}
             setFiltros={setFiltros}
             todasCategorias={todasCategorias}
@@ -907,8 +780,7 @@ function App() {
             irParaPagina={irParaPagina}
             handleExcluirTransacao={handleExcluirTransacao}
           />
-          );
-        })()}
+        )}
 
         {/* Chat de IA - Agora é um popup flutuante */}
         <ChatIAPopup isDark={isDark} />
