@@ -48,12 +48,12 @@ function App() {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas | null>(null);
   const [gastosPorDia, setGastosPorDia] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState<Filtros>({});
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [totalPaginas, setTotalPaginas] = useState(1);
-  const [totalTransacoes, setTotalTransacoes] = useState(0);
-  const [itensPorPagina, setItensPorPagina] = useState(5);
+  const [_totalPaginas, setTotalPaginas] = useState(1);
+  const [_totalTransacoes, setTotalTransacoes] = useState(0);
+  const [itensPorPagina, _setItensPorPagina] = useState(5);
   const [todasCategorias, setTodasCategorias] = useState<string[]>([]);
   // Dados separados para gráficos (todas as transações, sem paginação)
   const [todasTransacoesParaGraficos, setTodasTransacoesParaGraficos] = useState<Transacao[]>([]);
@@ -252,6 +252,28 @@ function App() {
     };
   }, []);
 
+  // Fecha menu mobile ao pressionar ESC e previne scroll
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && menuMobileAberto) {
+        setMenuMobileAberto(false);
+      }
+    };
+
+    if (menuMobileAberto) {
+      document.addEventListener('keydown', handleEscape);
+      // Previne scroll do body quando menu está aberto
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [menuMobileAberto]);
+
   // Carrega dados quando o usuário faz login
   useEffect(() => {
     // Aguarda o loading do AuthContext terminar antes de fazer requisições
@@ -430,11 +452,6 @@ function App() {
     }
   };
 
-  const irParaPagina = (pagina: number) => {
-    if (pagina >= 1 && pagina <= totalPaginas) {
-      setPaginaAtual(pagina);
-    }
-  };
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
@@ -949,13 +966,6 @@ function App() {
             todasTransacoesParaGraficos={todasTransacoesParaGraficos}
             gastosPorDia={gastosPorDia}
             transacoes={transacoes}
-            loading={loading}
-            totalTransacoes={totalTransacoes}
-            paginaAtual={paginaAtual}
-            totalPaginas={totalPaginas}
-            itensPorPagina={itensPorPagina}
-            setItensPorPagina={setItensPorPagina}
-            irParaPagina={irParaPagina}
             handleExcluirTransacao={handleExcluirTransacao}
           />
         )}

@@ -6,17 +6,14 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   flexRender,
-  ColumnDef,
-  SortingState,
-  ColumnFiltersState,
-  GlobalFilterState,
+  type ColumnDef,
+  type SortingState,
+  type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { FaSort, FaSortUp, FaSortDown, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaTrash, FaPlus } from 'react-icons/fa';
 import type { Transacao } from '../config';
 import { capitalize } from '../utils/capitalize';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface DataTableProps {
   data: Transacao[];
@@ -66,7 +63,7 @@ export function DataTable({
           <div className="text-sm">{formatarData(row.original.dataHora)}</div>
         ),
         enableColumnFilter: true,
-        filterFn: (row, id, value) => {
+        filterFn: (row, _id, value) => {
           const dateStr = formatarData(row.original.dataHora).toLowerCase();
           return dateStr.includes(value.toLowerCase());
         },
@@ -92,7 +89,7 @@ export function DataTable({
           <div className="text-sm font-medium">{capitalize(row.original.descricao)}</div>
         ),
         enableColumnFilter: true,
-        filterFn: (row, id, value) => {
+        filterFn: (row, _id, value) => {
           return row.original.descricao.toLowerCase().includes(value.toLowerCase());
         },
       },
@@ -132,7 +129,7 @@ export function DataTable({
           );
         },
         enableColumnFilter: true,
-        filterFn: (row, id, value) => {
+        filterFn: (row, _id, value) => {
           if (value === 'all') return true;
           return row.original.tipo === value;
         },
@@ -173,7 +170,7 @@ export function DataTable({
           );
         },
         enableColumnFilter: true,
-        filterFn: (row, id, value) => {
+        filterFn: (row, _id, value) => {
           if (value === 'all') return true;
           return row.original.metodo === value;
         },
@@ -205,7 +202,7 @@ export function DataTable({
           </span>
         ),
         enableColumnFilter: true,
-        filterFn: (row, id, value) => {
+        filterFn: (row, _id, value) => {
           if (value === 'all' || !value) return true;
           return (row.original.categoria || 'outros').toLowerCase().includes(value.toLowerCase());
         },
@@ -247,7 +244,7 @@ export function DataTable({
           );
         },
         enableColumnFilter: true,
-        filterFn: (row, id, value) => {
+        filterFn: (row, _id, value) => {
           if (!value) return true;
           const numValue = parseFloat(value);
           if (isNaN(numValue)) return true;
@@ -308,12 +305,6 @@ export function DataTable({
     },
   });
 
-  const tiposUnicos = useMemo(() => ['all', 'entrada', 'saida'], []);
-  const metodosUnicos = useMemo(() => ['all', 'credito', 'debito'], []);
-  const categoriasUnicas = useMemo(() => {
-    const cats = new Set(data.map((t) => t.categoria || 'outros'));
-    return Array.from(cats).sort();
-  }, [data]);
 
   return (
     <div className={`rounded-lg sm:rounded-xl shadow-sm border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>

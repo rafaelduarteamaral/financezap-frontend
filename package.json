@@ -13,6 +13,7 @@
     "gerar-icones": "node gerar-icones.js"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.25",
     "react": "^19.2.0",

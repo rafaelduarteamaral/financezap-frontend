@@ -15,7 +15,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { FaSearch, FaTrash, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown, FaPlus, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaSearch, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
 import type { Transacao, Filtros } from '../config';
 import { capitalize } from '../utils/capitalize';
@@ -34,13 +34,6 @@ interface DashboardProps {
   todasTransacoesParaGraficos: Transacao[];
   gastosPorDia: any[];
   transacoes: Transacao[];
-  loading: boolean;
-  totalTransacoes: number;
-  paginaAtual: number;
-  totalPaginas: number;
-  itensPorPagina: number;
-  setItensPorPagina: (value: number) => void;
-  irParaPagina: (pagina: number) => void;
   handleExcluirTransacao: (id: number) => void;
 }
 
@@ -54,13 +47,6 @@ export function Dashboard({
   todasTransacoesParaGraficos,
   gastosPorDia,
   transacoes,
-  loading,
-  totalTransacoes,
-  paginaAtual,
-  totalPaginas,
-  itensPorPagina,
-  setItensPorPagina,
-  irParaPagina,
   handleExcluirTransacao,
 }: DashboardProps) {
   const [periodoSelecionado, setPeriodoSelecionado] = useState<Date>(new Date());
