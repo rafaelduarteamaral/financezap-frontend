@@ -5,7 +5,7 @@ import type { Agendamento } from '../config';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaTrash, FaClock, FaPlus } from 'react-icons/fa';
+import { FaCalendarAlt, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaTrash, FaClock, FaPlus, FaEdit } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
 import { capitalize } from '../utils/capitalize';
 import { ModalFormularioAgendamento } from './ModalFormularioAgendamento';
@@ -20,6 +20,7 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendente' | 'pago' | 'cancelado'>('todos');
   const [modalAgendamentoAberto, setModalAgendamentoAberto] = useState(false);
+  const [agendamentoParaEditar, setAgendamentoParaEditar] = useState<Agendamento | null>(null);
   const [categorias, setCategorias] = useState<string[]>(['outros']);
 
   const carregarAgendamentos = async () => {
@@ -77,7 +78,7 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
 
   const handleAtualizarStatus = async (id: number, novoStatus: 'pendente' | 'pago' | 'cancelado') => {
     try {
-      await api.atualizarAgendamento(id, novoStatus);
+      await api.atualizarAgendamento(id, { status: novoStatus });
       showSuccess('Status do agendamento atualizado com sucesso!');
       await carregarAgendamentos();
     } catch (error: any) {
@@ -157,7 +158,10 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
 
           <div className="flex items-center gap-3 flex-wrap">
             <motion.button
-              onClick={() => setModalAgendamentoAberto(true)}
+              onClick={() => {
+                setAgendamentoParaEditar(null);
+                setModalAgendamentoAberto(true);
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white ${
@@ -282,12 +286,36 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                     {agendamento.tipo === 'pagamento' ? 'Pagamento' : 'Recebimento'}
                   </p>
                 </div>
+                {agendamento.recorrente && agendamento.parcelaAtual && agendamento.totalParcelas && (
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Parcela:</p>
+                    <p className={`text-sm font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                      {agendamento.parcelaAtual} de {agendamento.totalParcelas}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Ações */}
               <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
                 {agendamento.status === 'pendente' && (
                   <>
+                    <motion.button
+                      onClick={() => {
+                        setAgendamentoParaEditar(agendamento);
+                        setModalAgendamentoAberto(true);
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm ${
+                        isDark
+                          ? 'bg-blue-900/20 text-blue-400 hover:bg-blue-900/30 border border-blue-800'
+                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      }`}
+                    >
+                      <FaEdit size={12} />
+                      Editar
+                    </motion.button>
                     <motion.button
                       onClick={() => handleAtualizarStatus(agendamento.id, 'pago')}
                       whileHover={{ scale: 1.05 }}
@@ -340,15 +368,20 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
         </div>
       )}
 
-      {/* Modal de Novo Agendamento */}
+      {/* Modal de Novo/Editar Agendamento */}
       <ModalFormularioAgendamento
         isOpen={modalAgendamentoAberto}
-        onClose={() => setModalAgendamentoAberto(false)}
+        onClose={() => {
+          setModalAgendamentoAberto(false);
+          setAgendamentoParaEditar(null);
+        }}
         onSuccess={() => {
           carregarAgendamentos();
+          setAgendamentoParaEditar(null);
         }}
         isDark={isDark}
         categorias={categorias}
+        agendamentoParaEditar={agendamentoParaEditar}
       />
     </div>
   );

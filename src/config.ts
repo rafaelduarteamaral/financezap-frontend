@@ -75,6 +75,11 @@ export type Agendamento = {
   status: 'pendente' | 'pago' | 'cancelado';
   categoria?: string;
   notificado: boolean;
+  // Campos para agendamentos recorrentes
+  recorrente?: boolean;
+  totalParcelas?: number | null;
+  parcelaAtual?: number | null;
+  agendamentoPaiId?: number | null;
   criadoEm: string;
   atualizadoEm: string;
 };

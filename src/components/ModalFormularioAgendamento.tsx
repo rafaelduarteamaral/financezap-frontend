@@ -10,6 +10,16 @@ interface ModalFormularioAgendamentoProps {
   onSuccess: () => void;
   isDark: boolean;
   categorias: string[];
+  agendamentoParaEditar?: {
+    id: number;
+    descricao: string;
+    valor: number;
+    dataAgendamento: string;
+    tipo: 'pagamento' | 'recebimento';
+    categoria?: string;
+    recorrente?: boolean;
+    totalParcelas?: number | null;
+  } | null;
 }
 
 export function ModalFormularioAgendamento({
@@ -18,6 +28,7 @@ export function ModalFormularioAgendamento({
   onSuccess,
   isDark,
   categorias,
+  agendamentoParaEditar,
 }: ModalFormularioAgendamentoProps) {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
@@ -27,24 +38,41 @@ export function ModalFormularioAgendamento({
     dataAgendamento: '',
     tipo: 'pagamento' as 'pagamento' | 'recebimento',
     categoria: 'outros',
+    recorrente: false,
+    totalParcelas: '',
   });
 
   useEffect(() => {
     if (isOpen) {
-      // Reset form when modal opens
-      const hoje = new Date();
-      const amanha = new Date(hoje);
-      amanha.setDate(amanha.getDate() + 1);
-      
-      setFormData({
-        descricao: '',
-        valor: '',
-        dataAgendamento: amanha.toISOString().split('T')[0],
-        tipo: 'pagamento',
-        categoria: 'outros',
-      });
+      if (agendamentoParaEditar) {
+        // Preenche formulário com dados do agendamento para edição
+        setFormData({
+          descricao: agendamentoParaEditar.descricao,
+          valor: agendamentoParaEditar.valor.toString(),
+          dataAgendamento: agendamentoParaEditar.dataAgendamento,
+          tipo: agendamentoParaEditar.tipo,
+          categoria: agendamentoParaEditar.categoria || 'outros',
+          recorrente: agendamentoParaEditar.recorrente || false,
+          totalParcelas: agendamentoParaEditar.totalParcelas?.toString() || '',
+        });
+      } else {
+        // Reset form when modal opens for new appointment
+        const hoje = new Date();
+        const amanha = new Date(hoje);
+        amanha.setDate(amanha.getDate() + 1);
+        
+        setFormData({
+          descricao: '',
+          valor: '',
+          dataAgendamento: amanha.toISOString().split('T')[0],
+          tipo: 'pagamento',
+          categoria: 'outros',
+          recorrente: false,
+          totalParcelas: '',
+        });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, agendamentoParaEditar]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,21 +92,46 @@ export function ModalFormularioAgendamento({
       return;
     }
 
+    if (formData.recorrente && (!formData.totalParcelas || parseInt(formData.totalParcelas) < 2 || parseInt(formData.totalParcelas) > 999)) {
+      showError('Para agendamentos recorrentes, informe o número de parcelas (entre 2 e 999)');
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.criarAgendamento({
-        descricao: formData.descricao.trim(),
-        valor: parseFloat(formData.valor),
-        dataAgendamento: formData.dataAgendamento,
-        tipo: formData.tipo,
-        categoria: formData.categoria,
-      });
-      
-      showSuccess('Agendamento criado com sucesso!');
+      if (agendamentoParaEditar) {
+        // Edição
+        await api.atualizarAgendamento(agendamentoParaEditar.id, {
+          descricao: formData.descricao.trim(),
+          valor: parseFloat(formData.valor),
+          dataAgendamento: formData.dataAgendamento,
+          tipo: formData.tipo,
+          categoria: formData.categoria,
+        });
+        
+        showSuccess('Agendamento atualizado com sucesso!');
+      } else {
+        // Criação
+        await api.criarAgendamento({
+          descricao: formData.descricao.trim(),
+          valor: parseFloat(formData.valor),
+          dataAgendamento: formData.dataAgendamento,
+          tipo: formData.tipo,
+          categoria: formData.categoria,
+          recorrente: formData.recorrente,
+          totalParcelas: formData.recorrente ? parseInt(formData.totalParcelas) : undefined,
+        });
+        
+        showSuccess(
+          formData.recorrente 
+            ? `${formData.totalParcelas} agendamentos recorrentes criados com sucesso!`
+            : 'Agendamento criado com sucesso!'
+        );
+      }
       onSuccess();
       onClose();
     } catch (error: any) {
-      showError(error.message || 'Erro ao criar agendamento');
+      showError(error.message || (agendamentoParaEditar ? 'Erro ao atualizar agendamento' : 'Erro ao criar agendamento'));
     } finally {
       setLoading(false);
     }
@@ -122,7 +175,7 @@ export function ModalFormularioAgendamento({
                     isDark ? 'text-white' : 'text-slate-900'
                   }`}
                 >
-                  Novo Agendamento
+                  {agendamentoParaEditar ? 'Editar Agendamento' : 'Novo Agendamento'}
                 </h2>
                 <button
                   onClick={onClose}
@@ -238,7 +291,7 @@ export function ModalFormularioAgendamento({
                         })
                       }
                       required
-                      min={new Date().toISOString().split('T')[0]}
+                      min={agendamentoParaEditar ? undefined : new Date().toISOString().split('T')[0]}
                       className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                         isDark
                           ? 'border-slate-600 bg-slate-700 text-white'
@@ -276,6 +329,66 @@ export function ModalFormularioAgendamento({
                   </select>
                 </div>
 
+                {/* Agendamento Recorrente - apenas para criação */}
+                {!agendamentoParaEditar && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="recorrente"
+                        checked={formData.recorrente}
+                        onChange={(e) =>
+                          setFormData({ ...formData, recorrente: e.target.checked, totalParcelas: e.target.checked ? formData.totalParcelas : '' })
+                        }
+                        className={`w-5 h-5 rounded border-2 focus:ring-2 focus:ring-primary-500 ${
+                          isDark
+                            ? 'border-slate-600 bg-slate-700 text-primary-500'
+                            : 'border-slate-300 bg-white text-primary-600'
+                        }`}
+                      />
+                      <label
+                        htmlFor="recorrente"
+                        className={`text-sm font-medium cursor-pointer ${
+                          isDark ? 'text-slate-300' : 'text-slate-700'
+                        }`}
+                      >
+                        Agendamento Recorrente (Parcelas)
+                      </label>
+                    </div>
+                    
+                    {formData.recorrente && (
+                      <div>
+                        <label
+                          className={`block text-sm font-medium mb-2 ${
+                            isDark ? 'text-slate-300' : 'text-slate-700'
+                          }`}
+                        >
+                          Número de Parcelas *
+                        </label>
+                        <input
+                          type="number"
+                          min="2"
+                          max="999"
+                          value={formData.totalParcelas}
+                          onChange={(e) =>
+                            setFormData({ ...formData, totalParcelas: e.target.value })
+                          }
+                          required={formData.recorrente}
+                          className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                            isDark
+                              ? 'border-slate-600 bg-slate-700 text-white'
+                              : 'border-slate-300 bg-white text-slate-900'
+                          }`}
+                          placeholder="Ex: 36, 10, 12"
+                        />
+                        <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Ex: 36x para empréstimo, 10x para compra parcelada, etc.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex gap-3 pt-4">
                   <button
@@ -304,8 +417,14 @@ export function ModalFormularioAgendamento({
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <FaPlus size={14} />
-                        Criar
+                        {agendamentoParaEditar ? (
+                          'Salvar'
+                        ) : (
+                          <>
+                            <FaPlus size={14} />
+                            Criar
+                          </>
+                        )}
                       </>
                     )}
                   </button>

@@ -604,6 +604,8 @@ export const api = {
     dataAgendamento: string;
     tipo: 'pagamento' | 'recebimento';
     categoria?: string;
+    recorrente?: boolean;
+    totalParcelas?: number;
   }) {
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/agendamentos`, {
@@ -660,7 +662,17 @@ export const api = {
   },
 
   // Agendamentos - Atualizar status
-  async atualizarAgendamento(id: number, status: 'pendente' | 'pago' | 'cancelado') {
+  async atualizarAgendamento(
+    id: number, 
+    dados: {
+      status?: 'pendente' | 'pago' | 'cancelado';
+      descricao?: string;
+      valor?: number;
+      dataAgendamento?: string;
+      tipo?: 'pagamento' | 'recebimento';
+      categoria?: string;
+    }
+  ) {
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/agendamentos/${id}`, {
       method: 'PUT',
@@ -668,7 +680,7 @@ export const api = {
         ...headers,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(dados),
     });
     
     if (response.status === 401) {
