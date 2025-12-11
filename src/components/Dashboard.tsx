@@ -15,7 +15,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { FaSearch, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaSearch, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt, FaArrowLeft, FaArrowRight, FaFilter, FaSync, FaChartLine, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp, FaCreditCard, FaWallet } from 'react-icons/fa';
 import type { Transacao, Filtros } from '../config';
 import { capitalize } from '../utils/capitalize';
 import { ModalFormularioTransacao } from './ModalFormularioTransacao';
@@ -1034,14 +1034,16 @@ export function Dashboard({
 
       {/* Gráficos Separados por Carteira - Crédito e Débito */}
       <div className="mb-8">
-        <h2 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          📊 Gráficos por Tipo de Carteira
+        <h2 className={`text-xl font-bold mb-6 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <FaChartLine className={isDark ? 'text-primary-400' : 'text-primary-500'} size={24} />
+          Gráficos por Tipo de Carteira
         </h2>
         
         {/* Seção de Crédito */}
         <div className="mb-8">
-          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-            💳 Cartão de Crédito
+          <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+            <FaCreditCard size={20} />
+            Cartão de Crédito
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Gráfico de Linha - Crédito */}
@@ -1182,8 +1184,9 @@ export function Dashboard({
 
         {/* Seção de Débito */}
         <div>
-          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
-            💵 Cartão de Débito / Dinheiro
+          <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+            <FaWallet size={20} />
+            Cartão de Débito / Dinheiro
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gráfico de Linha - Débito */}
