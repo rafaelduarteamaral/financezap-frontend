@@ -105,13 +105,48 @@ export function ModalFormularioTransacao({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validações no frontend
     if (!formData.descricao.trim()) {
       showError('Descrição é obrigatória');
       return;
     }
     
-    if (!formData.valor || parseFloat(formData.valor) <= 0) {
-      showError('Valor inválido');
+    if (formData.descricao.trim().length > 500) {
+      showError('Descrição muito longa. Máximo: 500 caracteres');
+      return;
+    }
+    
+    const valor = parseFloat(formData.valor);
+    if (!formData.valor || isNaN(valor) || valor <= 0) {
+      showError('Valor inválido. Deve ser maior que zero');
+      return;
+    }
+    
+    if (valor < 0.01) {
+      showError('Valor mínimo permitido: R$ 0,01');
+      return;
+    }
+    
+    if (valor > 10000000) {
+      showError('Valor muito alto. Máximo permitido: R$ 10.000.000,00');
+      return;
+    }
+    
+    // Validação: entrada não pode ser em crédito
+    if (formData.tipo === 'entrada' && formData.metodo === 'credito') {
+      showError('Recebimentos não podem ser em crédito');
+      return;
+    }
+    
+    // Validação: data não pode ser futura (exceto agendamentos)
+    const dataTransacao = new Date(formData.dataHora);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dataTransacaoSemHora = new Date(dataTransacao);
+    dataTransacaoSemHora.setHours(0, 0, 0, 0);
+    
+    if (dataTransacaoSemHora > hoje) {
+      showError('Não é possível criar transações com data futura. Use agendamentos para isso.');
       return;
     }
 
@@ -124,7 +159,7 @@ export function ModalFormularioTransacao({
       
       const dadosTransacao = {
         descricao: formData.descricao.trim(),
-        valor: parseFloat(formData.valor),
+        valor: valor,
         categoria: formData.categoria,
         tipo: formData.tipo,
         metodo: formData.metodo,
