@@ -29,14 +29,12 @@ export function InstallPrompt() {
     const isIOSStandalone = (window.navigator as any).standalone === true;
     
     if (isStandalone || isIOSStandalone) {
-      console.log('📱 PWA já está instalado');
       setIsInstalled(true);
       return;
     }
 
     // Em dispositivos móveis, mostra o prompt imediatamente (sem esperar evento)
     if (isIOSDevice || isAndroidDevice) {
-      console.log('📱 Dispositivo móvel detectado, mostrando prompt');
       const dismissed = localStorage.getItem('pwa-install-dismissed');
       if (!dismissed) {
         // Mostra após um pequeno delay para não interferir no carregamento
@@ -48,7 +46,6 @@ export function InstallPrompt() {
 
     // Escuta o evento beforeinstallprompt (Chrome/Edge Android)
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('📱 Evento beforeinstallprompt recebido');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowPrompt(true);
@@ -58,7 +55,6 @@ export function InstallPrompt() {
 
     // Verifica se foi instalado após o prompt
     window.addEventListener('appinstalled', () => {
-      console.log('✅ PWA instalado com sucesso');
       setIsInstalled(true);
       setShowPrompt(false);
       setDeferredPrompt(null);
@@ -72,7 +68,6 @@ export function InstallPrompt() {
         // Se ainda não recebeu o evento e não está instalado, mostra manualmente
         // Mostra sempre em iOS/Android, mesmo sem o evento
         if (!isInstalled) {
-          console.log('📱 Mostrando prompt manual de instalação');
           setShowPrompt(true);
         }
       }, 3000);
@@ -96,16 +91,13 @@ export function InstallPrompt() {
         const { outcome } = await deferredPrompt.userChoice;
 
         if (outcome === 'accepted') {
-          console.log('✅ Usuário aceitou instalar');
           setIsInstalled(true);
           setShowPrompt(false);
-        } else {
-          console.log('❌ Usuário recusou instalar');
         }
 
         setDeferredPrompt(null);
       } catch (error) {
-        console.error('Erro ao mostrar prompt de instalação:', error);
+        // Erro silencioso
       }
       return;
     }

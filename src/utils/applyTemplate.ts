@@ -17,5 +17,4 @@ export interface Template {
 // Função vazia - não faz nada, apenas para compatibilidade
 export function aplicarTemplate(_template: Template | any) {
   // Não faz nada - o Tailwind gerencia o dark mode via ThemeContext
-  console.log('applyTemplate chamado mas não faz nada - usando Tailwind dark mode');
 }

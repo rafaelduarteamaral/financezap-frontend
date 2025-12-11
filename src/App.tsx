@@ -295,7 +295,6 @@ function App() {
           }
         }
       } catch (error) {
-        console.error('❌ Erro ao buscar categorias:', error);
         // Fallback: usa categorias padrão se houver erro
         setTodasCategorias(['outros', 'alimentacao', 'transporte', 'moradia', 'saude', 'educacao', 'lazer', 'compras']);
       }
@@ -308,9 +307,7 @@ function App() {
     const buscarCarteiras = async () => {
       if (!usuario) return;
       try {
-        console.log('🔍 Buscando carteiras...');
         const response = await api.buscarCarteiras();
-        console.log('📦 Resposta da API de carteiras:', response);
         if (response.success && response.carteiras) {
           const carteirasFormatadas = response.carteiras.map((c: any) => ({ 
             id: c.id, 

@@ -36,9 +36,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     // Salva no localStorage
     localStorage.setItem('theme', theme);
-    
-    console.log('🌓 Tema alterado para:', theme);
-    console.log('📋 Classes no root:', root.classList.toString());
   }, [theme]);
   
   // Escuta mudanças de tema vindas de templates

@@ -33,7 +33,6 @@ export function Categorias({ isDark }: CategoriasProps) {
         setCategorias(response.categorias || []);
       }
     } catch (error: any) {
-      console.error('❌ Erro ao carregar categorias:', error);
       showError('Erro ao carregar categorias: ' + error.message);
     } finally {
       setLoading(false);
@@ -66,7 +65,6 @@ export function Categorias({ isDark }: CategoriasProps) {
       setFormData({ nome: '', descricao: '', cor: '#00C853', tipo: 'saida' });
       await carregarCategorias();
     } catch (error: any) {
-      console.error('❌ Erro ao salvar categoria:', error);
       showError('Erro ao salvar categoria: ' + error.message);
     }
   };
@@ -110,7 +108,6 @@ export function Categorias({ isDark }: CategoriasProps) {
       showSuccess('Categoria removida com sucesso!');
       await carregarCategorias();
     } catch (error: any) {
-      console.error('❌ Erro ao remover categoria:', error);
       showError('Erro ao remover categoria: ' + error.message);
     }
   };

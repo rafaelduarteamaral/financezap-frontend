@@ -44,9 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const usuarioParsed = JSON.parse(savedUsuario);
         setUsuario(usuarioParsed);
-        console.log('✅ Token e usuário carregados do localStorage');
       } catch (e) {
-        console.error('Erro ao parsear usuário do localStorage:', e);
+        // Erro silencioso
       }
       
       // Depois, verifica se o token JWT ainda é válido (em background)
@@ -55,13 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((data) => {
           if (data.success && data.usuario) {
             // Token válido - atualiza dados
-            console.log('✅ Token válido na verificação, atualizando dados do usuário');
             setUsuario(data.usuario);
               localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
-          } else {
-            // Token inválido - mas mantém sessão local por enquanto
-            console.warn('⚠️ Token inválido na verificação, mas mantendo sessão local');
-            // Não remove o token aqui - deixa as requisições API lidarem com isso
           }
         })
         .catch((error) => {
@@ -69,21 +63,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Erros de rede não devem remover o token
           if (error.message?.includes('campo telefone não encontrado') || 
               error.message?.includes('Token inválido') && error.message?.includes('campo telefone')) {
-            console.warn('❌ Token inválido (formato antigo), removendo');
             setToken(null);
             setUsuario(null);
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_usuario');
-          } else {
-            // Erro de rede ou outro - mantém sessão local
-            console.warn('⚠️ Erro ao verificar token (mantendo sessão local):', error.message);
           }
         })
         .finally(() => {
           setLoading(false);
         });
     } else {
-      console.log('⚠️ Nenhum token ou usuário encontrado no localStorage');
       setLoading(false);
     }
   }, []);
@@ -92,7 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Se o token já foi fornecido (do login com código), usa diretamente
       if (token) {
-        console.log('🔐 Login com token fornecido:', token.substring(0, 20) + '...');
         setToken(token);
         // Garante que o token está salvo no localStorage
         localStorage.setItem('auth_token', token);
@@ -101,10 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
           setUsuario(JSON.parse(savedUsuario));
           } catch (e) {
-            console.error('Erro ao parsear usuário:', e);
+            // Erro silencioso
           }
         }
-        console.log('✅ Token salvo no localStorage e estado atualizado');
         return { success: true };
       }
       

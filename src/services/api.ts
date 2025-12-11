@@ -99,13 +99,10 @@ export const api = {
     if (filtros?.limit) params.append('limit', filtros.limit.toString());
 
     const headers = getHeaders();
-    console.log('🔐 Headers da requisição:', { ...headers, Authorization: headers.Authorization ? 'Bearer ***' : 'não enviado' });
     
     const response = await fetch(`${API_BASE_URL}/api/transacoes?${params.toString()}`, {
       headers,
     });
-    
-    console.log('📥 Resposta da API:', response.status, response.statusText);
     
     if (response.status === 401) {
       // Token expirado ou inválido
@@ -116,7 +113,6 @@ export const api = {
       if (errorMessage.includes('login novamente') || 
           errorMessage.includes('campo telefone não encontrado') ||
           errorMessage.includes('Token inválido')) {
-        console.warn('⚠️ Token inválido detectado na requisição, limpando localStorage');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_usuario');
         // Não força reload imediato - deixa o componente lidar com isso
@@ -131,7 +127,6 @@ export const api = {
     }
     
     const data = await response.json();
-    console.log('✅ Dados recebidos:', { total: data.total, transacoes: data.transacoes?.length || 0 });
     return data;
   },
 
@@ -344,7 +339,6 @@ export const api = {
       return data;
     } catch (error: any) {
       // Erro de rede - não remove o token, apenas retorna erro
-      console.error('Erro de rede ao verificar token:', error);
       return { success: false, error: 'Erro de conexão. Verifique sua internet.' };
     }
   },
@@ -406,11 +400,6 @@ export const api = {
   // Atualizar perfil do usuário
   async atualizarPerfil(dados: { nome: string; email?: string }) {
     const headers = getHeaders();
-    console.log('🔐 Headers para atualizarPerfil:', {
-      hasAuth: !!headers['Authorization'],
-      authPreview: headers['Authorization'] ? headers['Authorization'].substring(0, 20) + '...' : 'N/A',
-      tokenFromStorage: getToken() ? getToken()!.substring(0, 20) + '...' : 'N/A'
-    });
     const response = await fetch(`${API_BASE_URL}/api/auth/perfil`, {
       method: 'PUT',
       headers: {

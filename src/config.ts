@@ -7,11 +7,6 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.PROD ? 'https://financezap.rafael-damaral.workers.dev' : 'http://localhost:3000');
 
-// Debug: mostra a URL da API sendo usada (remover em produção)
-if (import.meta.env.DEV) {
-  console.log('🔧 API_BASE_URL:', API_BASE_URL);
-  console.log('🔧 VITE_API_URL do env:', import.meta.env.VITE_API_URL);
-}
 
 export type Transacao = {
   id?: number;

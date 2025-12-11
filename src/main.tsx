@@ -11,11 +11,11 @@ import { ToastProvider } from './contexts/ToastContext.tsx'
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('Service Worker registrado com sucesso:', registration.scope);
+      .then(() => {
+        // Service Worker registrado
       })
-      .catch((error) => {
-        console.log('Falha ao registrar Service Worker:', error);
+      .catch(() => {
+        // Falha ao registrar Service Worker
       });
   });
 }

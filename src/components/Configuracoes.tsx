@@ -116,7 +116,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   useEffect(() => {
     if (isOpen) {
       if (usuario) {
-        console.log('📝 Carregando dados do usuário:', usuario);
         setNome(usuario.nome || '');
         // Carrega email se disponível
         setEmail(usuario.email || '');
@@ -137,8 +136,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
 
     setSalvando(true);
     try {
-      console.log('💾 Salvando perfil no backend...', { nome: nome.trim(), email: email.trim() || undefined });
-      
       // Chama a API para salvar no backend
       const response = await api.atualizarPerfil({ 
         nome: nome.trim(), 
@@ -146,8 +143,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
       });
       
       if (response.success) {
-        console.log('✅ Perfil salvo no backend:', response.usuario);
-        
         // Atualiza o contexto e localStorage com os dados atualizados do backend
         atualizarUsuario({ 
           nome: response.usuario.nome,
@@ -161,7 +156,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
         throw new Error(response.error || 'Erro ao salvar perfil');
       }
     } catch (error: any) {
-      console.error('❌ Erro ao salvar perfil:', error);
       setSalvando(false);
       showError(`Erro ao salvar: ${error.message}`);
     }
@@ -169,14 +163,12 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
 
   const handleAssinarPlano = async (planoId: string) => {
     // TODO: Implementar integração com gateway de pagamento
-    console.log('Assinando plano:', planoId);
     showInfo(`Redirecionando para assinatura do plano ${planoId}...`);
   };
 
   const handleEnviarContato = async () => {
     setEnviandoContato(true);
     try {
-      console.log('📱 Solicitando envio de mensagem para salvar contato...');
       const response = await api.enviarMensagemContato();
       
       if (response.success) {
@@ -185,7 +177,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
         throw new Error(response.error || 'Erro ao enviar mensagem');
       }
     } catch (error: any) {
-      console.error('❌ Erro ao enviar mensagem de contato:', error);
       showError(`Erro ao enviar mensagem: ${error.message}`);
     } finally {
       setEnviandoContato(false);
@@ -195,7 +186,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   const handleExcluirTodosDados = async () => {
     setExcluindoDados(true);
     try {
-      console.log('🗑️  Solicitando exclusão completa de dados (LGPD)...');
       const response = await api.excluirTodosDados();
       
       if (response.success) {
@@ -212,7 +202,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
         throw new Error(response.error || 'Erro ao excluir dados');
       }
     } catch (error: any) {
-      console.error('❌ Erro ao excluir dados:', error);
       showError(`Erro ao excluir dados: ${error.message}`);
     } finally {
       setExcluindoDados(false);
@@ -462,7 +451,6 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
                   ) : (
                     <motion.button
                       onClick={() => {
-                        console.log('✏️ Entrando em modo de edição');
                         setEditando(true);
                       }}
                       whileHover={{ scale: 1.05 }}

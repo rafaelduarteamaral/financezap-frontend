@@ -34,7 +34,7 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
         setAgendamentos(response.agendamentos || []);
       }
     } catch (error: any) {
-      console.error('❌ Erro ao carregar agendamentos:', error);
+      // Erro silencioso
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
           setCategorias(['outros', ...nomesCategorias]);
         }
       } catch (error) {
-        console.error('Erro ao carregar categorias:', error);
+        // Erro silencioso
       }
     };
     carregarCategorias();
@@ -81,7 +81,6 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
       showSuccess('Status do agendamento atualizado com sucesso!');
       await carregarAgendamentos();
     } catch (error: any) {
-      console.error('❌ Erro ao atualizar agendamento:', error);
       showError('Erro ao atualizar agendamento: ' + error.message);
     }
   };
@@ -105,7 +104,6 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
       showSuccess('Agendamento removido com sucesso!');
       await carregarAgendamentos();
     } catch (error: any) {
-      console.error('❌ Erro ao remover agendamento:', error);
       showError('Erro ao remover agendamento: ' + error.message);
     }
   };

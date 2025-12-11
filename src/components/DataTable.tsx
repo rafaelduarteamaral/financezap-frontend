@@ -22,6 +22,11 @@ interface DataTableProps {
   onNewTransaction?: () => void;
   formatarMoeda: (valor: number) => string;
   formatarData: (data: string) => string;
+  // Paginação server-side
+  total?: number;
+  pageCount?: number;
+  onPaginationChange?: (pageIndex: number, pageSize: number) => void;
+  manualPagination?: boolean;
 }
 
 export function DataTable({
@@ -31,6 +36,10 @@ export function DataTable({
   onNewTransaction,
   formatarMoeda,
   formatarData,
+  total,
+  pageCount,
+  onPaginationChange,
+  manualPagination = false,
 }: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -39,6 +48,17 @@ export function DataTable({
     pageIndex: 0,
     pageSize: 10,
   });
+
+  // Handler para mudanças de paginação
+  const handlePaginationChange = (updater: any) => {
+    const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
+    setPagination(newPagination);
+    
+    // Se há callback e paginação manual, chama o callback
+    if (manualPagination && onPaginationChange) {
+      onPaginationChange(newPagination.pageIndex, newPagination.pageSize);
+    }
+  };
 
   const columns = useMemo<ColumnDef<Transacao>[]>(
     () => [
@@ -176,6 +196,55 @@ export function DataTable({
         },
       },
       {
+        accessorKey: 'carteira',
+        header: ({ column }) => (
+          <button
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+          >
+            Carteira
+            {column.getIsSorted() === 'asc' ? (
+              <FaSortUp size={12} />
+            ) : column.getIsSorted() === 'desc' ? (
+              <FaSortDown size={12} />
+            ) : (
+              <FaSort size={12} className="opacity-30" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const carteira = row.original.carteira;
+          if (!carteira) {
+            return (
+              <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Sem carteira
+              </span>
+            );
+          }
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{carteira.nome}</span>
+              {carteira.tipo && (
+                <span
+                  className={`text-xs ${
+                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                >
+                  {carteira.tipo === 'credito' ? 'Crédito' : 'Débito'}
+                </span>
+              )}
+            </div>
+          );
+        },
+        enableColumnFilter: true,
+        filterFn: (row, _id, value) => {
+          if (!value) return true;
+          const carteira = row.original.carteira;
+          if (!carteira) return false;
+          return carteira.nome.toLowerCase().includes(value.toLowerCase());
+        },
+      },
+      {
         accessorKey: 'categoria',
         header: ({ column }) => (
           <button
@@ -192,15 +261,18 @@ export function DataTable({
             )}
           </button>
         ),
-        cell: ({ row }) => (
-          <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              isDark ? 'bg-primary-900 text-primary-200' : 'bg-primary-100 text-primary-800'
-            }`}
-          >
-            {capitalize(row.original.categoria || 'outros')}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const categoria = row.original.categoria || 'outros';
+          return (
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                isDark ? 'bg-primary-900 text-primary-200' : 'bg-primary-100 text-primary-800'
+              }`}
+            >
+              {capitalize(categoria)}
+            </span>
+          );
+        },
         enableColumnFilter: true,
         filterFn: (row, _id, value) => {
           if (value === 'all' || !value) return true;
@@ -293,11 +365,13 @@ export function DataTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: manualPagination ? undefined : getFilteredRowModel(),
+    getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    manualPagination: manualPagination,
+    pageCount: manualPagination && pageCount !== undefined ? pageCount : undefined,
     initialState: {
       pagination: {
         pageSize: 10,
@@ -316,7 +390,10 @@ export function DataTable({
               Transações
             </h2>
             <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Mostrando {table.getFilteredRowModel().rows.length} de {data.length} transação(ões)
+              {manualPagination && total !== undefined
+                ? `Mostrando ${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a ${Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, total)} de ${total} transação(ões)`
+                : `Mostrando ${table.getFilteredRowModel().rows.length} de ${data.length} transação(ões)`
+              }
             </p>
           </div>
           {onNewTransaction && (
@@ -535,12 +612,10 @@ export function DataTable({
       {/* Paginação */}
       <div className={`p-4 sm:p-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
         <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-          Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a{' '}
-          {Math.min(
-            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            table.getFilteredRowModel().rows.length
-          )}{' '}
-          de {table.getFilteredRowModel().rows.length} transações
+          {manualPagination && total !== undefined
+            ? `Mostrando ${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a ${Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, total)} de ${total} transações`
+            : `Mostrando ${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a ${Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} de ${table.getFilteredRowModel().rows.length} transações`
+          }
         </div>
 
         <div className="flex items-center gap-2">
@@ -574,7 +649,7 @@ export function DataTable({
             </motion.button>
 
             <span className={`px-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+              Página {table.getState().pagination.pageIndex + 1} de {manualPagination && pageCount !== undefined ? pageCount : table.getPageCount()}
             </span>
 
             <motion.button

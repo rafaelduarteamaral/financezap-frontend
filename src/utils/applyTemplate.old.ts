@@ -295,7 +295,7 @@ export function aplicarTemplate(template: Template | any) {
       }
     });
   } catch (error) {
-    console.warn('⚠️ Erro ao aplicar estilos inline em elementos primary:', error);
+    // Erro silencioso
   }
   
   // Aplica estilos inline em elementos com classes slate-* (fundo e menus)
@@ -955,7 +955,7 @@ export function aplicarTemplate(template: Template | any) {
     });
     
   } catch (error) {
-    console.warn('⚠️ Erro ao aplicar estilos inline em elementos slate:', error);
+    // Erro silencioso
   }
   
   // Aplica estilos inline especificamente em elementos dentro de main para light e custom
@@ -1153,22 +1153,7 @@ export function aplicarTemplate(template: Template | any) {
         aplicarEstilosEmElementos();
       }, 600);
     } catch (error) {
-      console.warn('⚠️ Erro ao aplicar estilos inline em elementos do main:', error);
+      // Erro silencioso
     }
   }
-  
-  console.log('🎨 Template aplicado:', template.nome, {
-    primaria: template.corPrimaria,
-    secundaria: template.corSecundaria,
-    destaque: template.corDestaque,
-    fundo: template.corFundo,
-    texto: template.corTexto,
-    tons: tonsPrimaria
-  });
-  
-  // Log das variáveis CSS para debug
-  console.log('📋 Variáveis CSS definidas:', {
-    '--color-primary-500': getComputedStyle(root).getPropertyValue('--color-primary-500'),
-    '--color-primary-600': getComputedStyle(root).getPropertyValue('--color-primary-600'),
-  });
 }

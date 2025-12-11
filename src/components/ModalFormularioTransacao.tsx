@@ -75,7 +75,7 @@ export function ModalFormularioTransacao({
             }
           }
         } catch (error) {
-          console.error('Erro ao carregar carteiras:', error);
+          // Erro silencioso
         }
       };
       carregarCarteiras();
@@ -133,12 +133,7 @@ export function ModalFormularioTransacao({
         carteiraId: formData.carteiraId,
       };
       
-      console.log('📤 Enviando transação:', dadosTransacao);
-      
       const response = await api.criarTransacao(dadosTransacao);
-      
-      console.log('✅ Transação criada com sucesso:', response);
-      console.log('📋 ID da transação criada:', response.transacao?.id);
       
       showSuccess('Transação criada com sucesso!');
       

@@ -931,13 +931,10 @@ export function Dashboard({
         isOpen={modalTransacaoAberto}
         onClose={() => setModalTransacaoAberto(false)}
         onSuccess={async () => {
-          console.log('🔄 onSuccess chamado após criar transação');
-          
           // Aguarda um pouco para o backend processar
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // Limpa TODOS os filtros e recarrega os dados
-          console.log('🔄 Limpando filtros e recarregando dados após criar transação...');
           limparFiltros();
         }}
         isDark={isDark}

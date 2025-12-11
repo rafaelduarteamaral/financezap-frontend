@@ -46,7 +46,6 @@ export function Carteiras({ isDark }: CarteirasProps) {
         setCarteiras(response.carteiras || []);
       }
     } catch (error: any) {
-      console.error('❌ Erro ao carregar carteiras:', error);
       showError('Erro ao carregar carteiras: ' + error.message);
     } finally {
       setLoading(false);
@@ -122,7 +121,6 @@ export function Carteiras({ isDark }: CarteirasProps) {
       });
       await carregarCarteiras();
     } catch (error: any) {
-      console.error('❌ Erro ao salvar carteira:', error);
       showError('Erro ao salvar carteira: ' + error.message);
     }
   };
@@ -146,7 +144,6 @@ export function Carteiras({ isDark }: CarteirasProps) {
       showSuccess('Carteira definida como padrão!');
       await carregarCarteiras();
     } catch (error: any) {
-      console.error('❌ Erro ao definir carteira padrão:', error);
       showError('Erro ao definir carteira padrão: ' + error.message);
     }
   };
@@ -172,7 +169,6 @@ export function Carteiras({ isDark }: CarteirasProps) {
       showSuccess('Carteira removida com sucesso!');
       await carregarCarteiras();
     } catch (error: any) {
-      console.error('❌ Erro ao remover carteira:', error);
       showError('Erro ao remover carteira: ' + error.message);
     }
   };
