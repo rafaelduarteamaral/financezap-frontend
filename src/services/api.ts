@@ -671,6 +671,8 @@ export const api = {
       dataAgendamento?: string;
       tipo?: 'pagamento' | 'recebimento';
       categoria?: string;
+      carteiraId?: number | null;
+      valorPago?: number;
     }
   ) {
     const headers = getHeaders();
