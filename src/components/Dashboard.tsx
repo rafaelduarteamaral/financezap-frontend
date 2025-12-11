@@ -20,6 +20,7 @@ import type { Transacao, Filtros } from '../config';
 import { capitalize } from '../utils/capitalize';
 import { ModalFormularioTransacao } from './ModalFormularioTransacao';
 import { DataTable } from './DataTable';
+import { MultiSelectCarteiras } from './MultiSelectCarteiras';
 
 const COLORS = ['#00C853', '#E5C07B', '#00953D', '#B39553', '#69F0AE'];
 
@@ -28,12 +29,16 @@ interface DashboardProps {
   filtros: Filtros;
   setFiltros: (filtros: Filtros) => void;
   todasCategorias: string[];
+  todasCarteiras: Array<{ id: number; nome: string; tipo?: string }>;
   aplicarFiltros: () => void;
   limparFiltros: () => void;
   todasTransacoesParaGraficos: Transacao[];
   gastosPorDia: any[];
   transacoes: Transacao[];
   handleExcluirTransacao: (id: number) => void;
+  totalTransacoes?: number;
+  totalPaginas?: number;
+  onPaginationChange?: (pageIndex: number, pageSize: number) => void;
 }
 
 export function Dashboard({
@@ -41,12 +46,16 @@ export function Dashboard({
   filtros,
   setFiltros,
   todasCategorias,
+  todasCarteiras,
   aplicarFiltros,
   limparFiltros,
   todasTransacoesParaGraficos,
   gastosPorDia,
   transacoes,
   handleExcluirTransacao,
+  totalTransacoes,
+  totalPaginas,
+  onPaginationChange,
 }: DashboardProps) {
   const [periodoSelecionado, setPeriodoSelecionado] = useState<Date>(new Date());
   const [filtroRapidoAtivo, setFiltroRapidoAtivo] = useState<'hoje' | '7dias' | 'mes' | 'ano' | null>(null);
@@ -445,6 +454,21 @@ export function Dashboard({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className={`block text-[10px] sm:text-xs lg:text-sm font-medium mb-1 sm:mb-1.5 lg:mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Carteiras</label>
+                <MultiSelectCarteiras
+                  carteiras={todasCarteiras}
+                  selectedIds={filtros.carteirasIds || []}
+                  onChange={(selectedIds) => {
+                    setFiltros({
+                      ...filtros,
+                      carteirasIds: selectedIds.length > 0 ? selectedIds : undefined,
+                    });
+                  }}
+                  isDark={isDark}
+                />
               </div>
             </div>
 
@@ -896,6 +920,10 @@ export function Dashboard({
         onNewTransaction={() => setModalTransacaoAberto(true)}
         formatarMoeda={formatarMoeda}
         formatarData={formatarData}
+        total={totalTransacoes}
+        pageCount={totalPaginas}
+        onPaginationChange={onPaginationChange}
+        manualPagination={true}
       />
 
       {/* Modal de Nova Transação */}

@@ -15,9 +15,6 @@ function getHeaders(): Record<string, string> {
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-    console.log('🔐 Token encontrado, adicionando ao header Authorization');
-  } else {
-    console.warn('⚠️ Token não encontrado no localStorage!');
   }
   
   return headers;
@@ -95,6 +92,9 @@ export const api = {
     if (filtros?.valorMax) params.append('valorMax', filtros.valorMax.toString());
     if (filtros?.descricao) params.append('descricao', filtros.descricao);
     if (filtros?.categoria) params.append('categoria', filtros.categoria);
+    if (filtros?.carteirasIds && filtros.carteirasIds.length > 0) {
+      filtros.carteirasIds.forEach(id => params.append('carteirasIds', id.toString()));
+    }
     if (filtros?.page) params.append('page', filtros.page.toString());
     if (filtros?.limit) params.append('limit', filtros.limit.toString());
 
@@ -144,9 +144,46 @@ export const api = {
     if (filtros?.valorMax) params.append('valorMax', filtros.valorMax.toString());
     if (filtros?.descricao) params.append('descricao', filtros.descricao);
     if (filtros?.categoria) params.append('categoria', filtros.categoria);
+    if (filtros?.carteirasIds && filtros.carteirasIds.length > 0) {
+      filtros.carteirasIds.forEach(id => params.append('carteirasIds', id.toString()));
+    }
 
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/estatisticas?${params.toString()}`, {
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Buscar estatísticas de CRÉDITO
+  async buscarEstatisticasCredito(filtros?: Filtros) {
+    const params = new URLSearchParams();
+    if (filtros?.dataInicio) params.append('dataInicio', filtros.dataInicio);
+    if (filtros?.dataFim) params.append('dataFim', filtros.dataFim);
+    if (filtros?.valorMin) params.append('valorMin', filtros.valorMin.toString());
+    if (filtros?.valorMax) params.append('valorMax', filtros.valorMax.toString());
+    if (filtros?.descricao) params.append('descricao', filtros.descricao);
+    if (filtros?.categoria) params.append('categoria', filtros.categoria);
+    if (filtros?.carteirasIds && filtros.carteirasIds.length > 0) {
+      filtros.carteirasIds.forEach(id => params.append('carteirasIds', id.toString()));
+    }
+
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/estatisticas-credito?${params.toString()}`, {
       headers,
     });
     
@@ -173,6 +210,32 @@ export const api = {
 
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/gastos-por-dia?${params.toString()}`, {
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Buscar gastos por dia de CRÉDITO (para gráfico)
+  async buscarGastosPorDiaCredito(dias: number = 30) {
+    const params = new URLSearchParams();
+    params.append('dias', dias.toString());
+
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/gastos-por-dia-credito?${params.toString()}`, {
       headers,
     });
     
@@ -809,7 +872,14 @@ export const api = {
   },
 
   // Carteiras - Criar
-  async criarCarteira(dados: { nome: string; descricao?: string; padrao?: boolean }) {
+  async criarCarteira(dados: { 
+    nome: string; 
+    descricao?: string; 
+    padrao?: boolean;
+    tipo?: string;
+    limiteCredito?: number;
+    diaPagamento?: number;
+  }) {
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/carteiras`, {
       method: 'POST',
@@ -837,7 +907,15 @@ export const api = {
   },
 
   // Carteiras - Atualizar
-  async atualizarCarteira(id: number, dados: { nome?: string; descricao?: string; padrao?: boolean; ativo?: boolean }) {
+  async atualizarCarteira(id: number, dados: { 
+    nome?: string; 
+    descricao?: string; 
+    padrao?: boolean; 
+    ativo?: boolean;
+    tipo?: string;
+    limiteCredito?: number;
+    diaPagamento?: number;
+  }) {
     const headers = getHeaders();
     const response = await fetch(`${API_BASE_URL}/api/carteiras/${id}`, {
       method: 'PUT',

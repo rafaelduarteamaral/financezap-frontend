@@ -51,10 +51,11 @@ function App() {
   const [_loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState<Filtros>({});
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [_totalPaginas, setTotalPaginas] = useState(1);
-  const [_totalTransacoes, setTotalTransacoes] = useState(0);
-  const [itensPorPagina, _setItensPorPagina] = useState(5);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalTransacoes, setTotalTransacoes] = useState(0);
+  const [itensPorPagina, setItensPorPagina] = useState(10);
   const [todasCategorias, setTodasCategorias] = useState<string[]>([]);
+  const [todasCarteiras, setTodasCarteiras] = useState<Array<{ id: number; nome: string; tipo?: string }>>([]);
   // Dados separados para gráficos (todas as transações, sem paginação)
   const [todasTransacoesParaGraficos, setTodasTransacoesParaGraficos] = useState<Transacao[]>([]);
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias' | 'carteiras'>('dashboard');
@@ -81,13 +82,6 @@ function App() {
       // Só adiciona se ainda não viu essa chave
       if (!visto.has(chave)) {
         visto.set(chave, transacao);
-      } else {
-        console.log(`⚠️ Duplicata detectada e removida:`, {
-          id: transacao.id,
-          descricao: transacao.descricao,
-          dataHora: transacao.dataHora,
-          valor: transacao.valor
-        });
       }
     }
     
@@ -116,7 +110,6 @@ function App() {
       const resultado = await api.excluirTransacao(id);
       
       if (resultado.success) {
-        console.log('✅ Transação excluída com sucesso');
         showSuccess('Transação excluída com sucesso!');
         // Recarrega os dados para atualizar a lista
         await carregarDados(paginaAtual);
@@ -124,7 +117,6 @@ function App() {
         showError('Erro ao excluir transação: ' + (resultado.error || 'Erro desconhecido'));
       }
     } catch (error: any) {
-      console.error('❌ Erro ao excluir transação:', error);
       showError('Erro ao excluir transação: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
@@ -134,22 +126,18 @@ function App() {
   // Função para carregar dados (deve ser definida antes dos useEffect)
   const carregarDados = async (pagina: number = 1) => {
     if (!usuario || !token) {
-      console.log('⚠️ Usuário ou token não encontrado, não é possível carregar dados', { usuario: !!usuario, token: !!token });
       return;
     }
     
     // Verifica se o token está no localStorage antes de fazer requisições
     const savedToken = localStorage.getItem('auth_token');
     if (!savedToken) {
-      console.log('⚠️ Token não encontrado no localStorage');
       return;
     }
     
-    console.log('🔄 Carregando dados para usuário:', usuario.telefone);
     setLoading(true);
     try {
       // Usa paginação - o backend já filtra pelo telefone do token JWT
-      console.log('📡 Fazendo requisições para API...');
       // Carrega dados paginados para a tabela
       const [transacoesData, statsData, gastosData, todasTransacoesData] = await Promise.all([
         api.buscarTransacoes({ ...filtros, page: pagina, limit: itensPorPagina }),
@@ -159,30 +147,15 @@ function App() {
         api.buscarTransacoes({ ...filtros, page: 1, limit: 10000 }),
       ]);
 
-      console.log('📥 Resposta transações:', transacoesData);
-      console.log('📥 Resposta estatísticas:', statsData);
-      console.log('📥 Resposta gastos por dia:', gastosData);
-
       if (transacoesData.success) {
         const total = transacoesData.total || 0;
-        const totalPages = transacoesData.totalPages || 1;
-        const currentPage = transacoesData.page || 1;
         const transacoesCount = transacoesData.transacoes?.length || 0;
-        
-        console.log(`✅ Transações carregadas: ${transacoesCount} de ${total} total`);
-        console.log(`   📄 Página ${currentPage} de ${totalPages}`);
-        console.log(`   📊 Paginação:`, {
-          page: currentPage,
-          limit: transacoesData.limit,
-          total,
-          totalPages,
-          hasNextPage: transacoesData.hasNextPage,
-          hasPrevPage: transacoesData.hasPrevPage
-        });
+        // Calcula totalPages baseado no total e itensPorPagina
+        const totalPages = Math.ceil(total / itensPorPagina) || 1;
+        const currentPage = pagina;
         
         // Remove duplicatas baseadas em ID ou combinação única de campos
         const transacoesUnicas = removerDuplicatas(transacoesData.transacoes || []);
-        console.log(`🔍 Transações após remoção de duplicatas: ${transacoesUnicas.length} (removidas ${transacoesCount - transacoesUnicas.length})`);
         
         setTransacoes(transacoesUnicas);
         setTotalTransacoes(total);
@@ -191,44 +164,31 @@ function App() {
         if (currentPage !== paginaAtual) {
           setPaginaAtual(currentPage);
         }
-      } else {
-        console.error('❌ Erro ao carregar transações:', transacoesData.error);
       }
       
       if (statsData.success) {
-        console.log('✅ Estatísticas carregadas:', statsData.estatisticas);
         setEstatisticas(statsData.estatisticas);
-      } else {
-        console.error('❌ Erro ao carregar estatísticas:', statsData.error);
       }
       
       if (gastosData.success) {
-        console.log('✅ Gastos por dia carregados:', gastosData.dados?.length || 0);
         setGastosPorDia(gastosData.dados?.reverse() || []);
-      } else {
-        console.error('❌ Erro ao carregar gastos por dia:', gastosData.error);
       }
       
       // Salva todas as transações para os gráficos (sem paginação)
       if (todasTransacoesData.success) {
         const todasTransacoesUnicas = removerDuplicatas(todasTransacoesData.transacoes || []);
-        console.log(`✅ Todas as transações para gráficos: ${todasTransacoesUnicas.length} (após remoção de duplicatas)`);
         setTodasTransacoesParaGraficos(todasTransacoesUnicas);
       } else {
-        console.error('❌ Erro ao carregar todas as transações:', todasTransacoesData.error);
         setTodasTransacoesParaGraficos([]);
       }
     } catch (error: any) {
-      console.error('❌ Erro ao carregar dados:', error);
       // Se for erro de autenticação específico, faz logout
       if (error.message?.includes('campo telefone não encontrado') || 
           error.message?.includes('login novamente') ||
           (error.message?.includes('Token inválido') && error.message?.includes('campo telefone'))) {
-        console.log('🔐 Token inválido detectado, fazendo logout...');
         logout();
         // Não recarrega a página - apenas faz logout e mostra tela de login
       } else if (error.message?.includes('Sessão expirada')) {
-        console.log('🔐 Sessão expirada, fazendo logout...');
         logout();
       }
       // Outros erros não fazem logout automático
@@ -266,7 +226,7 @@ function App() {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
-    }
+        }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
@@ -283,10 +243,7 @@ function App() {
     
     // Só carrega dados se realmente estiver autenticado E tiver usuário E token
     if (isAuthenticated && usuario && !authLoading) {
-      console.log('✅ Usuário autenticado, carregando dados...');
       carregarDados(1);
-    } else {
-      console.log('⚠️ Usuário não autenticado ou ainda carregando:', { isAuthenticated, usuario: !!usuario, authLoading });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, usuario, authLoading]);
@@ -345,6 +302,29 @@ function App() {
       }
     };
     buscarCategorias();
+  }, [usuario]);
+
+  // Busca todas as carteiras disponíveis
+  useEffect(() => {
+    const buscarCarteiras = async () => {
+      if (!usuario) return;
+      try {
+        console.log('🔍 Buscando carteiras...');
+        const response = await api.buscarCarteiras();
+        console.log('📦 Resposta da API de carteiras:', response);
+        if (response.success && response.carteiras) {
+          const carteirasFormatadas = response.carteiras.map((c: any) => ({ 
+            id: c.id, 
+            nome: c.nome, 
+            tipo: c.tipo 
+          }));
+          setTodasCarteiras(carteirasFormatadas);
+        }
+      } catch (error: any) {
+        // Erro silencioso
+      }
+    };
+    buscarCarteiras();
   }, [usuario]);
 
   // Agora sim, podemos fazer returns condicionais
@@ -432,18 +412,15 @@ function App() {
   };
 
   const aplicarFiltros = () => {
-    console.log('🔍 Aplicando filtros:', filtros);
     const pagina = 1; // Sempre volta para a primeira página ao aplicar filtros
     setPaginaAtual(pagina);
     // Recarrega os dados imediatamente
     if (usuario) {
-      console.log('🔄 Recarregando dados após aplicar filtros...');
       carregarDados(pagina);
     }
   };
 
   const limparFiltros = () => {
-    console.log('🧹 Limpando filtros');
     setFiltros({});
     setPaginaAtual(1);
     // Recarrega os dados imediatamente
@@ -498,7 +475,7 @@ function App() {
                 <span className="hidden sm:inline">Dashboard</span>
                 <span className="sm:hidden">Home</span>
               </motion.button>
-
+              
               <motion.button
                 onClick={() => setAbaAtiva('agendamentos')}
                 whileHover={{ scale: 1.05 }}
@@ -513,11 +490,11 @@ function App() {
                 <span className="hidden sm:inline">Agendamentos</span>
                 <span className="sm:hidden">Agenda</span>
               </motion.button>
-
-              <motion.button
+              
+                <motion.button
                 onClick={() => setAbaAtiva('categorias')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
                   abaAtiva === 'categorias'
                     ? 'bg-white text-[hsl(220,15%,20%)] shadow-md'
@@ -527,12 +504,12 @@ function App() {
                 <FaTags size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Categorias</span>
                 <span className="sm:hidden">Cats</span>
-              </motion.button>
+                </motion.button>
 
-              <motion.button
+                <motion.button
                 onClick={() => setAbaAtiva('carteiras')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
                   abaAtiva === 'carteiras'
                     ? 'bg-white text-[hsl(220,15%,20%)] shadow-md'
@@ -542,13 +519,13 @@ function App() {
                 <FaWallet size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Carteiras</span>
                 <span className="sm:hidden">Carteira</span>
-              </motion.button>
+                </motion.button>
             </nav>
 
             {/* Seção do usuário à direita - Apenas Desktop */}
             <div className="hidden sm:flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {/* Botão Dark/Light Mode */}
-              <motion.button
+                <motion.button
                 onClick={toggleTheme}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -682,7 +659,7 @@ function App() {
                   <FaTimes size={20} />
                 </motion.button>
               </div>
-
+          
               {/* Informações do Usuário */}
               {usuario && (
                 <div className={`px-4 py-4 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
@@ -697,16 +674,16 @@ function App() {
                         {usuario.nome || formatarNumero(usuario.telefone)}
                       </p>
                       <p className={`text-xs truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {formatarNumero(usuario.telefone)}
+                    {formatarNumero(usuario.telefone)}
                       </p>
                       {usuario.status === 'premium' && (
                         <div className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded mt-1 inline-block">
                           Premium
-                        </div>
-                      )}
-                    </div>
                   </div>
+                      )}
                 </div>
+                </div>
+              </div>
               )}
 
               {/* Navegação */}
@@ -743,7 +720,7 @@ function App() {
                       </motion.button>
                     );
                   })}
-                </div>
+            </div>
               </nav>
 
               {/* Footer do Drawer */}
@@ -800,7 +777,7 @@ function App() {
                   <FaSignOutAlt size={20} />
                   <span className="font-medium">Sair</span>
                 </motion.button>
-              </div>
+        </div>
             </div>
           </motion.div>
         </>
@@ -961,12 +938,20 @@ function App() {
             filtros={filtros}
             setFiltros={setFiltros}
             todasCategorias={todasCategorias}
+            todasCarteiras={todasCarteiras}
             aplicarFiltros={aplicarFiltros}
             limparFiltros={limparFiltros}
             todasTransacoesParaGraficos={todasTransacoesParaGraficos}
             gastosPorDia={gastosPorDia}
             transacoes={transacoes}
             handleExcluirTransacao={handleExcluirTransacao}
+            totalTransacoes={totalTransacoes}
+            totalPaginas={totalPaginas}
+            onPaginationChange={(pageIndex, pageSize) => {
+              const novaPagina = pageIndex + 1; // pageIndex é 0-based, mas a API espera 1-based
+              setItensPorPagina(pageSize);
+              carregarDados(novaPagina);
+            }}
           />
         )}
 

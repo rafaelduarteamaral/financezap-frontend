@@ -9,6 +9,9 @@ interface Carteira {
   id: number;
   nome: string;
   descricao?: string | null;
+  tipo?: string; // "debito" ou "credito"
+  limiteCredito?: number | null;
+  diaPagamento?: number | null;
   padrao: boolean;
   ativo: boolean;
   criadoEm: string;
@@ -29,6 +32,9 @@ export function Carteiras({ isDark }: CarteirasProps) {
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
+    tipo: 'debito' as 'debito' | 'credito',
+    limiteCredito: '' as string | number,
+    diaPagamento: '' as string | number,
     padrao: false,
   });
 
@@ -59,18 +65,61 @@ export function Carteiras({ isDark }: CarteirasProps) {
       return;
     }
 
+    // Validações para carteira de crédito
+    if (formData.tipo === 'credito') {
+      const limite = typeof formData.limiteCredito === 'string' 
+        ? parseFloat(formData.limiteCredito) 
+        : formData.limiteCredito;
+      
+      if (!limite || limite <= 0) {
+        showError('Limite de crédito é obrigatório e deve ser maior que zero');
+        return;
+      }
+
+      const diaPagamento = typeof formData.diaPagamento === 'string'
+        ? parseInt(formData.diaPagamento)
+        : formData.diaPagamento;
+
+      if (!diaPagamento || diaPagamento < 1 || diaPagamento > 31) {
+        showError('Dia de pagamento deve ser entre 1 e 31');
+        return;
+      }
+    }
+
     try {
+      const dadosEnvio = {
+        nome: formData.nome,
+        descricao: formData.descricao || undefined,
+        tipo: formData.tipo,
+        padrao: formData.padrao,
+        ...(formData.tipo === 'credito' && {
+          limiteCredito: typeof formData.limiteCredito === 'string' 
+            ? parseFloat(formData.limiteCredito) 
+            : formData.limiteCredito,
+          diaPagamento: typeof formData.diaPagamento === 'string'
+            ? parseInt(formData.diaPagamento)
+            : formData.diaPagamento,
+        }),
+      };
+
       if (editando) {
-        await api.atualizarCarteira(editando.id, formData);
+        await api.atualizarCarteira(editando.id, dadosEnvio);
         showSuccess('Carteira atualizada com sucesso!');
       } else {
-        await api.criarCarteira(formData);
+        await api.criarCarteira(dadosEnvio);
         showSuccess('Carteira criada com sucesso!');
       }
       
       setMostrarForm(false);
       setEditando(null);
-      setFormData({ nome: '', descricao: '', padrao: false });
+      setFormData({ 
+        nome: '', 
+        descricao: '', 
+        tipo: 'debito',
+        limiteCredito: '',
+        diaPagamento: '',
+        padrao: false 
+      });
       await carregarCarteiras();
     } catch (error: any) {
       console.error('❌ Erro ao salvar carteira:', error);
@@ -83,6 +132,9 @@ export function Carteiras({ isDark }: CarteirasProps) {
     setFormData({
       nome: carteira.nome,
       descricao: carteira.descricao || '',
+      tipo: (carteira.tipo || 'debito') as 'debito' | 'credito',
+      limiteCredito: carteira.limiteCredito || '',
+      diaPagamento: carteira.diaPagamento || '',
       padrao: carteira.padrao,
     });
     setMostrarForm(true);
@@ -148,7 +200,14 @@ export function Carteiras({ isDark }: CarteirasProps) {
             <motion.button
               onClick={() => {
                 setEditando(null);
-                setFormData({ nome: '', descricao: '', padrao: false });
+                setFormData({ 
+                  nome: '', 
+                  descricao: '', 
+                  tipo: 'debito',
+                  limiteCredito: '',
+                  diaPagamento: '',
+                  padrao: false 
+                });
                 setMostrarForm(true);
               }}
               whileHover={{ scale: 1.05 }}
@@ -209,6 +268,74 @@ export function Carteiras({ isDark }: CarteirasProps) {
               />
             </div>
 
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                Tipo de Carteira *
+              </label>
+              <select
+                value={formData.tipo}
+                onChange={(e) => {
+                  const novoTipo = e.target.value as 'debito' | 'credito';
+                  setFormData({ 
+                    ...formData, 
+                    tipo: novoTipo,
+                    // Limpa campos de crédito se mudar para débito
+                    ...(novoTipo === 'debito' && { limiteCredito: '', diaPagamento: '' })
+                  });
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                  isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'
+                }`}
+                required
+              >
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+              </select>
+            </div>
+
+            {formData.tipo === 'credito' && (
+              <>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Limite de Crédito *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={formData.limiteCredito}
+                    onChange={(e) => setFormData({ ...formData, limiteCredito: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'
+                    }`}
+                    required={formData.tipo === 'credito'}
+                    placeholder="Ex: 5000.00"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Dia de Pagamento da Fatura *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formData.diaPagamento}
+                    onChange={(e) => setFormData({ ...formData, diaPagamento: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'
+                    }`}
+                    required={formData.tipo === 'credito'}
+                    placeholder="Dia do mês (1-31)"
+                  />
+                  <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Dia do mês em que a fatura vence
+                  </p>
+                </div>
+              </>
+            )}
+
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -240,7 +367,14 @@ export function Carteiras({ isDark }: CarteirasProps) {
                 onClick={() => {
                   setMostrarForm(false);
                   setEditando(null);
-                  setFormData({ nome: '', descricao: '', padrao: false });
+                  setFormData({ 
+                    nome: '', 
+                    descricao: '', 
+                    tipo: 'debito',
+                    limiteCredito: '',
+                    diaPagamento: '',
+                    padrao: false 
+                  });
                 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -298,10 +432,32 @@ export function Carteiras({ isDark }: CarteirasProps) {
               </div>
               
               {carteira.descricao && (
-                <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                <p className={`text-sm mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                   {carteira.descricao}
                 </p>
               )}
+
+              <div className="mb-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    carteira.tipo === 'credito'
+                      ? isDark ? 'bg-purple-900 text-purple-200' : 'bg-purple-100 text-purple-800'
+                      : isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {carteira.tipo === 'credito' ? 'Crédito' : 'Débito'}
+                  </span>
+                </div>
+                {carteira.tipo === 'credito' && carteira.limiteCredito && (
+                  <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <span className="font-medium">Limite:</span> R$ {carteira.limiteCredito.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                )}
+                {carteira.tipo === 'credito' && carteira.diaPagamento && (
+                  <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <span className="font-medium">Vencimento:</span> Dia {carteira.diaPagamento}
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-2 mt-4">
                 {!carteira.padrao && (

@@ -24,6 +24,11 @@ export type Transacao = {
   dataHora: string;
   data: string;
   mensagemOriginal?: string;
+  carteira?: {
+    id: number;
+    nome: string;
+    tipo?: string;
+  };
 };
 
 export type Estatisticas = {
@@ -34,6 +39,18 @@ export type Estatisticas = {
   menorGasto: number;
   gastoHoje: number;
   gastoMes: number;
+};
+
+export type EstatisticasCredito = {
+  totalGasto: number;
+  totalTransacoes: number;
+  mediaGasto: number;
+  maiorGasto: number;
+  menorGasto: number;
+  gastoHoje: number;
+  gastoMes: number;
+  limiteUtilizado?: number;
+  limiteDisponivel?: number;
 };
 
 export type Telefone = {
@@ -50,6 +67,7 @@ export type Filtros = {
   valorMax?: number;
   descricao?: string;
   categoria?: string;
+  carteirasIds?: number[]; // Array de IDs de carteiras para filtrar múltiplas carteiras
 };
 
 export type Agendamento = {
