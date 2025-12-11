@@ -149,7 +149,6 @@ function App() {
 
       if (transacoesData.success) {
         const total = transacoesData.total || 0;
-        const transacoesCount = transacoesData.transacoes?.length || 0;
         // Calcula totalPages baseado no total e itensPorPagina
         const totalPages = Math.ceil(total / itensPorPagina) || 1;
         const currentPage = pagina;
