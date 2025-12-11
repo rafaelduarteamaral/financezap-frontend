@@ -147,6 +147,126 @@ export function Dashboard({
     { name: 'Débito', value: totalDebito, color: '#8b5cf6' },
   ];
 
+  // Dados separados por tipo de carteira (crédito vs débito)
+  // Prioriza o tipo da carteira, mas usa o método como fallback
+  const transacoesCredito = todasTransacoesParaGraficos.filter((t) => {
+    // Se tem carteira com tipo definido, usa o tipo da carteira
+    if (t.carteira?.tipo) {
+      return t.carteira.tipo === 'credito';
+    }
+    // Caso contrário, usa o método como fallback
+    return t.metodo === 'credito';
+  });
+
+  const transacoesDebito = todasTransacoesParaGraficos.filter((t) => {
+    // Se tem carteira com tipo definido, usa o tipo da carteira
+    if (t.carteira?.tipo) {
+      return t.carteira.tipo === 'debito';
+    }
+    // Caso contrário, usa o método como fallback (ou se não tem método, assume débito)
+    return !t.metodo || t.metodo === 'debito';
+  });
+
+  // Gráfico de linha separado para crédito - calcula dados por dia
+  const gastosPorDiaCredito = (() => {
+    // Pega os últimos 30 dias
+    const dias: any[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const data = new Date();
+      data.setDate(data.getDate() - i);
+      const dataStr = format(data, 'yyyy-MM-dd');
+      
+      const transacoesDia = transacoesCredito.filter((t: Transacao) => {
+        const dataTransacao = new Date(t.dataHora).toISOString().split('T')[0];
+        return dataTransacao === dataStr;
+      });
+      
+      const entradas = transacoesDia.filter((t: Transacao) => t.tipo === 'entrada').reduce((sum: number, t: Transacao) => sum + t.valor, 0);
+      const saidas = transacoesDia.filter((t: Transacao) => t.tipo === 'saida').reduce((sum: number, t: Transacao) => sum + t.valor, 0);
+      
+      dias.push({
+        data: dataStr,
+        entradas,
+        saidas,
+        saldo: entradas - saidas
+      });
+    }
+    return dias;
+  })();
+
+  // Gráfico de linha separado para débito - calcula dados por dia
+  const gastosPorDiaDebito = (() => {
+    // Pega os últimos 30 dias
+    const dias: any[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const data = new Date();
+      data.setDate(data.getDate() - i);
+      const dataStr = format(data, 'yyyy-MM-dd');
+      
+      const transacoesDia = transacoesDebito.filter((t: Transacao) => {
+        const dataTransacao = new Date(t.dataHora).toISOString().split('T')[0];
+        return dataTransacao === dataStr;
+      });
+      
+      const entradas = transacoesDia.filter((t: Transacao) => t.tipo === 'entrada').reduce((sum: number, t: Transacao) => sum + t.valor, 0);
+      const saidas = transacoesDia.filter((t: Transacao) => t.tipo === 'saida').reduce((sum: number, t: Transacao) => sum + t.valor, 0);
+      
+      dias.push({
+        data: dataStr,
+        entradas,
+        saidas,
+        saldo: entradas - saidas
+      });
+    }
+    return dias;
+  })();
+
+  // Top categorias por tipo de carteira
+  const topCategoriasCredito = Object.entries(
+    transacoesCredito
+      .filter(t => t.tipo === 'saida')
+      .reduce((acc: any, t) => {
+        const categoria = t.categoria || 'outros';
+        if (!acc[categoria]) acc[categoria] = 0;
+        acc[categoria] += t.valor;
+        return acc;
+      }, {})
+  )
+    .map(([name, value]: [string, any]) => ({ name: capitalize(name), value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const topCategoriasDebito = Object.entries(
+    transacoesDebito
+      .filter(t => t.tipo === 'saida')
+      .reduce((acc: any, t) => {
+        const categoria = t.categoria || 'outros';
+        if (!acc[categoria]) acc[categoria] = 0;
+        acc[categoria] += t.valor;
+        return acc;
+      }, {})
+  )
+    .map(([name, value]: [string, any]) => ({ name: capitalize(name), value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  // Totais por carteira
+  const totalCreditoEntradas = transacoesCredito
+    .filter(t => t.tipo === 'entrada')
+    .reduce((sum, t) => sum + t.valor, 0);
+  
+  const totalCreditoSaidas = transacoesCredito
+    .filter(t => t.tipo === 'saida')
+    .reduce((sum, t) => sum + t.valor, 0);
+
+  const totalDebitoEntradas = transacoesDebito
+    .filter(t => t.tipo === 'entrada')
+    .reduce((sum, t) => sum + t.valor, 0);
+  
+  const totalDebitoSaidas = transacoesDebito
+    .filter(t => t.tipo === 'saida')
+    .reduce((sum, t) => sum + t.valor, 0);
+
   // Funções para filtros rápidos
   const aplicarFiltroRapido = (tipo: 'hoje' | '7dias' | 'mes' | 'ano') => {
     const hoje = new Date();
@@ -908,6 +1028,297 @@ export function Dashboard({
                 <Legend formatter={(value: string) => capitalize(value)} />
               </PieChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráficos Separados por Carteira - Crédito e Débito */}
+      <div className="mb-8">
+        <h2 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          📊 Gráficos por Tipo de Carteira
+        </h2>
+        
+        {/* Seção de Crédito */}
+        <div className="mb-8">
+          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+            💳 Cartão de Crédito
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Gráfico de Linha - Crédito */}
+            <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Fluxo Financeiro - Crédito (Últimos 30 dias)
+              </h4>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={gastosPorDiaCredito}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#475569' : '#e2e8f0'} />
+                  <XAxis 
+                    dataKey="data" 
+                    tick={{ fill: isDark ? '#cbd5e1' : '#64748b', fontSize: 12 }}
+                    tickFormatter={(value) => {
+                      try {
+                        const date = new Date(value);
+                        return format(date, 'dd/MM', { locale: ptBR });
+                      } catch {
+                        return value;
+                      }
+                    }}
+                  />
+                  <YAxis 
+                    tick={{ fill: isDark ? '#cbd5e1' : '#64748b', fontSize: 12 }}
+                    tickFormatter={(value) => {
+                      if (value >= 1000) return `R$ ${(value / 1000).toFixed(1)}k`;
+                      return `R$ ${value}`;
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => {
+                      return [formatarMoeda(value), name];
+                    }}
+                    labelFormatter={(label) => {
+                      try {
+                        const date = new Date(label);
+                        return format(date, "dd/MM/yyyy", { locale: ptBR });
+                      } catch {
+                        return label;
+                      }
+                    }}
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      border: isDark ? '1px solid #475569' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: isDark ? '#cbd5e1' : '#1e293b'
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="entradas" 
+                    stroke="#00C853" 
+                    strokeWidth={2} 
+                    name="Entradas"
+                    dot={{ fill: '#00C853', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="saidas" 
+                    stroke="#ef4444" 
+                    strokeWidth={2} 
+                    name="Saídas"
+                    dot={{ fill: '#ef4444', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="saldo" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2} 
+                    strokeDasharray="5 5"
+                    name="Saldo"
+                    dot={{ fill: '#3b82f6', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className={`mt-4 p-4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>Total Entradas</p>
+                    <p className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                      {formatarMoeda(totalCreditoEntradas)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>Total Saídas</p>
+                    <p className={`font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                      {formatarMoeda(totalCreditoSaidas)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gráfico de Pizza - Top Categorias Crédito */}
+            <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Top 5 Categorias - Crédito
+              </h4>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={topCategoriasCredito.length > 0 ? topCategoriasCredito : [{ name: 'Nenhuma Transação', value: 0 }]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(props: any) => {
+                      const { percent } = props;
+                      if (percent === 0) return '';
+                      return `${((percent || 0) * 100).toFixed(0)}%`;
+                    }}
+                    outerRadius={75}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {topCategoriasCredito.map((_, index) => (
+                      <Cell key={`cell-credito-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [formatarMoeda(value), capitalize(name)]}
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      border: isDark ? '1px solid #475569' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: isDark ? '#cbd5e1' : '#1e293b'
+                    }}
+                  />
+                  <Legend formatter={(value: string) => capitalize(value)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de Débito */}
+        <div>
+          <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+            💵 Cartão de Débito / Dinheiro
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Gráfico de Linha - Débito */}
+            <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Fluxo Financeiro - Débito (Últimos 30 dias)
+              </h4>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={gastosPorDiaDebito}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#475569' : '#e2e8f0'} />
+                  <XAxis 
+                    dataKey="data" 
+                    tick={{ fill: isDark ? '#cbd5e1' : '#64748b', fontSize: 12 }}
+                    tickFormatter={(value) => {
+                      try {
+                        const date = new Date(value);
+                        return format(date, 'dd/MM', { locale: ptBR });
+                      } catch {
+                        return value;
+                      }
+                    }}
+                  />
+                  <YAxis 
+                    tick={{ fill: isDark ? '#cbd5e1' : '#64748b', fontSize: 12 }}
+                    tickFormatter={(value) => {
+                      if (value >= 1000) return `R$ ${(value / 1000).toFixed(1)}k`;
+                      return `R$ ${value}`;
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => {
+                      return [formatarMoeda(value), name];
+                    }}
+                    labelFormatter={(label) => {
+                      try {
+                        const date = new Date(label);
+                        return format(date, "dd/MM/yyyy", { locale: ptBR });
+                      } catch {
+                        return label;
+                      }
+                    }}
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      border: isDark ? '1px solid #475569' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: isDark ? '#cbd5e1' : '#1e293b'
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="entradas" 
+                    stroke="#00C853" 
+                    strokeWidth={2} 
+                    name="Entradas"
+                    dot={{ fill: '#00C853', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="saidas" 
+                    stroke="#ef4444" 
+                    strokeWidth={2} 
+                    name="Saídas"
+                    dot={{ fill: '#ef4444', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="saldo" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2} 
+                    strokeDasharray="5 5"
+                    name="Saldo"
+                    dot={{ fill: '#8b5cf6', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className={`mt-4 p-4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>Total Entradas</p>
+                    <p className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                      {formatarMoeda(totalDebitoEntradas)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>Total Saídas</p>
+                    <p className={`font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                      {formatarMoeda(totalDebitoSaidas)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gráfico de Pizza - Top Categorias Débito */}
+            <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Top 5 Categorias - Débito
+              </h4>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={topCategoriasDebito.length > 0 ? topCategoriasDebito : [{ name: 'Nenhuma Transação', value: 0 }]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(props: any) => {
+                      const { percent } = props;
+                      if (percent === 0) return '';
+                      return `${((percent || 0) * 100).toFixed(0)}%`;
+                    }}
+                    outerRadius={75}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {topCategoriasDebito.map((_, index) => (
+                      <Cell key={`cell-debito-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [formatarMoeda(value), capitalize(name)]}
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      border: isDark ? '1px solid #475569' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: isDark ? '#cbd5e1' : '#1e293b'
+                    }}
+                  />
+                  <Legend formatter={(value: string) => capitalize(value)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>
