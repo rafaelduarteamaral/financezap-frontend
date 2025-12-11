@@ -133,7 +133,7 @@ export function ModalFormularioTransacao({
         carteiraId: formData.carteiraId,
       };
       
-      const response = await api.criarTransacao(dadosTransacao);
+      await api.criarTransacao(dadosTransacao);
       
       showSuccess('Transação criada com sucesso!');
       
