@@ -177,8 +177,16 @@ export function Dashboard({
       const dataStr = format(data, 'yyyy-MM-dd');
       
       const transacoesDia = transacoesCredito.filter((t: Transacao) => {
-        const dataTransacao = new Date(t.dataHora).toISOString().split('T')[0];
-        return dataTransacao === dataStr;
+        if (!t.dataHora) return false;
+        try {
+          const dataTransacao = new Date(t.dataHora);
+          if (!dataTransacao || isNaN(dataTransacao.getTime())) return false;
+          // Usa format em vez de toISOString para evitar erros
+          const dataTransacaoStr = format(dataTransacao, 'yyyy-MM-dd');
+          return dataTransacaoStr === dataStr;
+        } catch {
+          return false;
+        }
       });
       
       const entradas = transacoesDia.filter((t: Transacao) => t.tipo === 'entrada').reduce((sum: number, t: Transacao) => sum + t.valor, 0);
@@ -204,8 +212,16 @@ export function Dashboard({
       const dataStr = format(data, 'yyyy-MM-dd');
       
       const transacoesDia = transacoesDebito.filter((t: Transacao) => {
-        const dataTransacao = new Date(t.dataHora).toISOString().split('T')[0];
-        return dataTransacao === dataStr;
+        if (!t.dataHora) return false;
+        try {
+          const dataTransacao = new Date(t.dataHora);
+          if (!dataTransacao || isNaN(dataTransacao.getTime())) return false;
+          // Usa format em vez de toISOString para evitar erros
+          const dataTransacaoStr = format(dataTransacao, 'yyyy-MM-dd');
+          return dataTransacaoStr === dataStr;
+        } catch {
+          return false;
+        }
       });
       
       const entradas = transacoesDia.filter((t: Transacao) => t.tipo === 'entrada').reduce((sum: number, t: Transacao) => sum + t.valor, 0);
@@ -324,15 +340,21 @@ export function Dashboard({
 
   // Cálculos para os cards de resumo - aplicando filtros de data
   const transacoesFiltradas = todasTransacoesParaGraficos.filter((t) => {
-    if (filtros.dataInicio || filtros.dataFim) {
-      const dataTransacao = new Date(t.dataHora);
-      const dataInicio = filtros.dataInicio ? new Date(filtros.dataInicio) : null;
-      const dataFim = filtros.dataFim ? new Date(filtros.dataFim + 'T23:59:59') : null;
-      
-      if (dataInicio && dataTransacao < dataInicio) return false;
-      if (dataFim && dataTransacao > dataFim) return false;
+    if (!t.dataHora) return false;
+    try {
+      if (filtros.dataInicio || filtros.dataFim) {
+        const dataTransacao = new Date(t.dataHora);
+        if (isNaN(dataTransacao.getTime())) return false;
+        const dataInicio = filtros.dataInicio ? new Date(filtros.dataInicio) : null;
+        const dataFim = filtros.dataFim ? new Date(filtros.dataFim + 'T23:59:59') : null;
+        
+        if (dataInicio && dataTransacao < dataInicio) return false;
+        if (dataFim && dataTransacao > dataFim) return false;
+      }
+      return true;
+    } catch {
+      return false;
     }
-    return true;
   });
 
   const receitas = transacoesFiltradas
@@ -348,8 +370,14 @@ export function Dashboard({
     if (!filtros.dataInicio) return 0;
     const dataInicio = new Date(filtros.dataInicio);
     const transacoesAnteriores = todasTransacoesParaGraficos.filter((t) => {
-      const dataTransacao = new Date(t.dataHora);
-      return dataTransacao < dataInicio;
+      if (!t.dataHora) return false;
+      try {
+        const dataTransacao = new Date(t.dataHora);
+        if (isNaN(dataTransacao.getTime())) return false;
+        return dataTransacao < dataInicio;
+      } catch {
+        return false;
+      }
     });
     const entradasAnteriores = transacoesAnteriores
       .filter(t => t.tipo === 'entrada')
@@ -793,7 +821,7 @@ export function Dashboard({
         <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <h3 className={`text-base sm:text-lg font-semibold mb-3 sm:mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Status Financeiro</h3>
           <div className="w-full h-[250px] sm:h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={250}>
               <PieChart>
                 <Pie
                   data={statusFinanceiro}
@@ -851,7 +879,7 @@ export function Dashboard({
         {/* Gráfico Crédito vs Débito */}
         <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Crédito vs Débito</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minHeight={300}>
             <PieChart>
               <Pie
                 data={creditoDebito}
@@ -890,7 +918,7 @@ export function Dashboard({
         {/* Gráfico de Linha - Entradas e Saídas por Dia */}
         <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Fluxo Financeiro por Dia (Últimos 30 dias)</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minHeight={300}>
             <LineChart data={gastosPorDia}>
               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#475569' : '#e2e8f0'} />
               <XAxis 
@@ -967,7 +995,7 @@ export function Dashboard({
         {/* Gráfico de Pizza - Top Categorias de Saídas */}
         <div className={`rounded-xl shadow-sm p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Top 5 Categorias - Saídas</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minHeight={300}>
             <PieChart>
               <Pie
                 data={topCategoriasSaidas.length > 0 ? topCategoriasSaidas : [{ name: 'Nenhuma Saída', value: 0 }]}
@@ -1002,7 +1030,7 @@ export function Dashboard({
         <div className={`rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-[hsl(120,10%,96%)] border-slate-200'}`}>
           <h3 className={`text-base sm:text-lg font-semibold mb-3 sm:mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Top 5 Categorias - Entradas</h3>
           <div className="w-full h-[250px] sm:h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={250}>
               <PieChart>
                 <Pie
                   data={topCategoriasEntradas.length > 0 ? topCategoriasEntradas : [{ name: 'Nenhuma Entrada', value: 0 }]}
@@ -1051,7 +1079,7 @@ export function Dashboard({
               <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Fluxo Financeiro - Crédito (Últimos 30 dias)
               </h4>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={300} minHeight={300}>
                 <LineChart data={gastosPorDiaCredito}>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#475569' : '#e2e8f0'} />
                   <XAxis 
@@ -1059,10 +1087,12 @@ export function Dashboard({
                     tick={{ fill: isDark ? '#cbd5e1' : '#64748b', fontSize: 12 }}
                     tickFormatter={(value) => {
                       try {
+                        if (!value) return '';
                         const date = new Date(value);
+                        if (isNaN(date.getTime())) return String(value);
                         return format(date, 'dd/MM', { locale: ptBR });
                       } catch {
-                        return value;
+                        return String(value || '');
                       }
                     }}
                   />
@@ -1079,10 +1109,12 @@ export function Dashboard({
                     }}
                     labelFormatter={(label) => {
                       try {
+                        if (!label) return '';
                         const date = new Date(label);
+                        if (isNaN(date.getTime())) return String(label);
                         return format(date, "dd/MM/yyyy", { locale: ptBR });
                       } catch {
-                        return label;
+                        return String(label || '');
                       }
                     }}
                     contentStyle={{
@@ -1146,7 +1178,7 @@ export function Dashboard({
               <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Top 5 Categorias - Crédito
               </h4>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={300} minHeight={300}>
                 <PieChart>
                   <Pie
                     data={topCategoriasCredito.length > 0 ? topCategoriasCredito : [{ name: 'Nenhuma Transação', value: 0 }]}
@@ -1194,7 +1226,7 @@ export function Dashboard({
               <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Fluxo Financeiro - Débito (Últimos 30 dias)
               </h4>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={300} minHeight={300}>
                 <LineChart data={gastosPorDiaDebito}>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#475569' : '#e2e8f0'} />
                   <XAxis 
@@ -1202,10 +1234,12 @@ export function Dashboard({
                     tick={{ fill: isDark ? '#cbd5e1' : '#64748b', fontSize: 12 }}
                     tickFormatter={(value) => {
                       try {
+                        if (!value) return '';
                         const date = new Date(value);
+                        if (isNaN(date.getTime())) return String(value);
                         return format(date, 'dd/MM', { locale: ptBR });
                       } catch {
-                        return value;
+                        return String(value || '');
                       }
                     }}
                   />
@@ -1222,10 +1256,12 @@ export function Dashboard({
                     }}
                     labelFormatter={(label) => {
                       try {
+                        if (!label) return '';
                         const date = new Date(label);
+                        if (isNaN(date.getTime())) return String(label);
                         return format(date, "dd/MM/yyyy", { locale: ptBR });
                       } catch {
-                        return label;
+                        return String(label || '');
                       }
                     }}
                     contentStyle={{
@@ -1289,7 +1325,7 @@ export function Dashboard({
               <h4 className={`text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Top 5 Categorias - Débito
               </h4>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={300} minHeight={300}>
                 <PieChart>
                   <Pie
                     data={topCategoriasDebito.length > 0 ? topCategoriasDebito : [{ name: 'Nenhuma Transação', value: 0 }]}

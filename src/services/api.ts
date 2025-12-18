@@ -995,5 +995,84 @@ export const api = {
     const data = await response.json();
     return data;
   },
+
+  // Remover grupo de agendamentos recorrentes
+  async removerGrupoAgendamentos(paiId: number) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/agendamentos/grupo/${paiId}`, {
+      method: 'DELETE',
+      headers,
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Adicionar nova parcela a um grupo de agendamentos recorrentes
+  async adicionarParcelaAgendamento(paiId: number) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/agendamentos/${paiId}/adicionar-parcela`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Ativar assinatura (atualiza status para 'ativo')
+  async ativarAssinatura(planoId: string) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/auth/ativar-assinatura`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ planoId }),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
 };
 

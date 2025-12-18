@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { api } from '../services/api';
 import { Avatar } from './Avatar';
+import { ModalPagamento } from './ModalPagamento';
 import { motion } from 'framer-motion';
 import { 
   FaUser, 
@@ -99,7 +100,7 @@ const PLANOS: Plano[] = [
 export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   const { usuario, atualizarUsuario } = useAuth();
   const { theme } = useTheme();
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess, showError } = useToast();
   const isDark = theme === 'dark';
   
   const [abaAtiva, setAbaAtiva] = useState<'perfil' | 'planos'>('perfil');
@@ -110,6 +111,8 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   const [enviandoContato, setEnviandoContato] = useState(false);
   const [excluindoDados, setExcluindoDados] = useState(false);
   const [mostrarConfirmacaoExclusao, setMostrarConfirmacaoExclusao] = useState(false);
+  const [modalPagamentoAberto, setModalPagamentoAberto] = useState(false);
+  const [planoSelecionado, setPlanoSelecionado] = useState<Plano | null>(null);
   
 
   // Atualiza os estados quando o usuário muda ou quando o modal abre
@@ -161,9 +164,58 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
     }
   };
 
-  const handleAssinarPlano = async (planoId: string) => {
-    // TODO: Implementar integração com gateway de pagamento
-    showInfo(`Redirecionando para assinatura do plano ${planoId}...`);
+  const handleAssinarPlano = (planoId: string) => {
+    const plano = PLANOS.find(p => p.id === planoId);
+    if (plano) {
+      setPlanoSelecionado(plano);
+      setModalPagamentoAberto(true);
+    }
+  };
+
+  const handlePagamentoSucesso = async () => {
+    if (!planoSelecionado) return;
+    
+    try {
+      // Chama API para ativar a assinatura
+      const response = await api.ativarAssinatura(planoSelecionado.id);
+      
+      if (response.success) {
+        // Atualiza o contexto do usuário com o novo plano
+        atualizarUsuario({ 
+          status: 'ativo',
+          plano: planoSelecionado.id,
+          diasRestantesTrial: null 
+        });
+        
+        // Atualiza localStorage
+        const usuarioStorage = localStorage.getItem('auth_usuario');
+        if (usuarioStorage) {
+          const usuarioData = JSON.parse(usuarioStorage);
+          usuarioData.status = 'ativo';
+          usuarioData.plano = planoSelecionado.id;
+          usuarioData.diasRestantesTrial = null;
+          localStorage.setItem('auth_usuario', JSON.stringify(usuarioData));
+        }
+        
+        showSuccess('Assinatura ativada com sucesso! 🎉');
+        
+        // Fecha os modais
+        setModalPagamentoAberto(false);
+        setPlanoSelecionado(null);
+        
+        // Fecha o modal de configurações e recarrega a página
+        onClose();
+        
+        // Recarrega a página para atualizar todos os dados
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } else {
+        throw new Error(response.error || 'Erro ao ativar assinatura');
+      }
+    } catch (error: any) {
+      showError(`Erro ao processar assinatura: ${error.message}`);
+    }
   };
 
   const handleEnviarContato = async () => {
@@ -620,7 +672,8 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {PLANOS.map((plano) => {
                   const Icon = plano.icon;
-                  const isCurrentPlan = usuario?.status === plano.id;
+                  // Verifica se é o plano atual do usuário
+                  const isCurrentPlan = usuario?.plano === plano.id && usuario?.status === 'ativo';
                   
                   return (
                     <motion.div
@@ -733,6 +786,17 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
         </div>
         </motion.div>
       </div>
+
+      {/* Modal de Pagamento */}
+      <ModalPagamento
+        isOpen={modalPagamentoAberto}
+        onClose={() => {
+          setModalPagamentoAberto(false);
+          setPlanoSelecionado(null);
+        }}
+        onSuccess={handlePagamentoSucesso}
+        plano={planoSelecionado}
+      />
     </>
   );
 }

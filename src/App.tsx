@@ -63,6 +63,17 @@ function App() {
   const [usuarioDropdownAberto, setUsuarioDropdownAberto] = useState(false);
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
 
+  // Função para validar se uma data é válida
+  const isDataValida = (dataHora: string | undefined | null): boolean => {
+    if (!dataHora) return false;
+    try {
+      const date = new Date(dataHora);
+      return !isNaN(date.getTime());
+    } catch {
+      return false;
+    }
+  };
+
   // Função para remover duplicatas de transações
   const removerDuplicatas = (transacoes: Transacao[]): Transacao[] => {
     const visto = new Map<string, Transacao>();
@@ -86,6 +97,11 @@ function App() {
     }
     
     return Array.from(visto.values());
+  };
+
+  // Função para filtrar transações com datas válidas (para gráficos)
+  const filtrarTransacoesComDatasValidas = (transacoes: Transacao[]): Transacao[] => {
+    return transacoes.filter(t => isDataValida(t.dataHora));
   };
 
   // Função para excluir transação
@@ -170,13 +186,25 @@ function App() {
       }
       
       if (gastosData.success) {
-        setGastosPorDia(gastosData.dados?.reverse() || []);
+        // Filtra dados com datas válidas para os gráficos
+        const dadosValidos = (gastosData.dados || []).filter((item: any) => {
+          if (!item.data) return false;
+          try {
+            const date = new Date(item.data);
+            return !isNaN(date.getTime());
+          } catch {
+            return false;
+          }
+        });
+        setGastosPorDia(dadosValidos.reverse());
       }
       
       // Salva todas as transações para os gráficos (sem paginação)
+      // Filtra transações com datas inválidas para evitar erros nos gráficos
       if (todasTransacoesData.success) {
         const todasTransacoesUnicas = removerDuplicatas(todasTransacoesData.transacoes || []);
-        setTodasTransacoesParaGraficos(todasTransacoesUnicas);
+        const transacoesComDatasValidas = filtrarTransacoesComDatasValidas(todasTransacoesUnicas);
+        setTodasTransacoesParaGraficos(transacoesComDatasValidas);
       } else {
         setTodasTransacoesParaGraficos([]);
       }
@@ -339,8 +367,14 @@ function App() {
     return <Login />;
   }
 
-  // Bloqueia acesso se trial expirou
-  if (usuario && usuario.status === 'expirado' && (!usuario.diasRestantesTrial || usuario.diasRestantesTrial <= 0)) {
+  // Bloqueia acesso se trial expirou (status expirado OU status trial com dias <= 0)
+  // Não bloqueia se status é 'ativo' (já renovou/assinou)
+  const trialExpirado = usuario && 
+    usuario.status !== 'ativo' && 
+    (usuario.status === 'expirado' || 
+     (usuario.status === 'trial' && usuario.diasRestantesTrial !== null && usuario.diasRestantesTrial !== undefined && usuario.diasRestantesTrial <= 0));
+  
+  if (trialExpirado) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
         <motion.div
@@ -779,8 +813,8 @@ function App() {
         </>
       )}
 
-      {/* Banner de Trial */}
-      {usuario && usuario.status === 'trial' && usuario.diasRestantesTrial !== null && usuario.diasRestantesTrial !== undefined && (
+      {/* Banner de Trial - só mostra se está em trial E tem dias restantes > 0 */}
+      {usuario && usuario.status === 'trial' && usuario.diasRestantesTrial !== null && usuario.diasRestantesTrial !== undefined && usuario.diasRestantesTrial > 0 && (
         <div className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-2 sm:pt-4 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
           <motion.div
             initial={{ opacity: 0, y: -10 }}

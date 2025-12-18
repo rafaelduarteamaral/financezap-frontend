@@ -11,6 +11,7 @@ interface Usuario {
   primeiraTransacao?: string;
   ultimaTransacao?: string;
   status?: string;
+  plano?: string | null; // 'mensal', 'trimestral', 'anual' ou null
   trialExpiraEm?: string;
   diasRestantesTrial?: number | null;
 }
