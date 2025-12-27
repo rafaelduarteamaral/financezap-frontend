@@ -22,7 +22,8 @@ import {
   FaChevronDown,
   FaSignOutAlt,
   FaBars,
-  FaTimes
+  FaTimes,
+  FaFilePdf
 } from 'react-icons/fa';
 import { InstallPrompt } from './components/InstallPrompt';
 import { ChatIAPopup } from './components/ChatIAPopup';
@@ -30,6 +31,7 @@ import { Agendamentos } from './components/Agendamentos';
 import { Categorias } from './components/Categorias';
 import { Carteiras } from './components/Carteiras';
 import { Configuracoes } from './components/Configuracoes';
+import { Relatorios } from './components/Relatorios';
 import { Avatar } from './components/Avatar';
 import { Logo } from './components/Logo';
 import { Dashboard } from './components/Dashboard';
@@ -40,7 +42,7 @@ import { motion } from 'framer-motion';
 
 
 function App() {
-  const { isAuthenticated, usuario, logout, loading: authLoading, token } = useAuth();
+  const { isAuthenticated, usuario, logout, loading: authLoading, token, atualizarUsuario } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showSuccess, showError, confirm, toasts, closeToast, confirmOptions, isConfirmOpen, closeConfirm } = useToast();
   const isDark = theme === 'dark';
@@ -58,7 +60,7 @@ function App() {
   const [todasCarteiras, setTodasCarteiras] = useState<Array<{ id: number; nome: string; tipo?: string }>>([]);
   // Dados separados para gráficos (todas as transações, sem paginação)
   const [todasTransacoesParaGraficos, setTodasTransacoesParaGraficos] = useState<Transacao[]>([]);
-  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias' | 'carteiras'>('dashboard');
+  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'agendamentos' | 'categorias' | 'carteiras' | 'relatorios'>('dashboard');
   const [configuracoesAberto, setConfiguracoesAberto] = useState(false);
   const [usuarioDropdownAberto, setUsuarioDropdownAberto] = useState(false);
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
@@ -238,6 +240,23 @@ function App() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Recarrega dados do perfil quando a aplicação é aberta
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      // Recarrega dados do perfil ao abrir a aplicação
+      api.verifyToken(token)
+        .then((data) => {
+          if (data.success && data.usuario) {
+            // Atualiza dados do usuário no contexto com dados mais recentes do servidor
+            atualizarUsuario(data.usuario);
+          }
+        })
+        .catch(() => {
+          // Erro silencioso - mantém dados do localStorage
+        });
+    }
+  }, [isAuthenticated, token, atualizarUsuario]);
 
   // Fecha menu mobile ao pressionar ESC e previne scroll
   useEffect(() => {
@@ -550,6 +569,21 @@ function App() {
                 <span className="hidden sm:inline">Carteiras</span>
                 <span className="sm:hidden">Carteira</span>
                 </motion.button>
+              
+              <motion.button
+                onClick={() => setAbaAtiva('relatorios')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-3 sm:px-4 lg:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0 ${
+                  abaAtiva === 'relatorios'
+                    ? 'bg-white text-[hsl(220,15%,20%)] shadow-md'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                <FaFilePdf size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Relatórios</span>
+                <span className="sm:hidden">Relatórios</span>
+              </motion.button>
             </nav>
 
             {/* Seção do usuário à direita - Apenas Desktop */}
@@ -724,6 +758,7 @@ function App() {
                     { id: 'agendamentos', label: 'Agendamentos', icon: FaCalendar },
                     { id: 'categorias', label: 'Categorias', icon: FaTags },
                     { id: 'carteiras', label: 'Carteiras', icon: FaWallet },
+                    { id: 'relatorios', label: 'Relatórios', icon: FaFilePdf },
                   ].map((item) => {
                     const Icon = item.icon;
                     const isActive = abaAtiva === item.id;
@@ -962,6 +997,8 @@ function App() {
           <Categorias isDark={isDark} />
         ) : abaAtiva === 'carteiras' ? (
           <Carteiras isDark={isDark} />
+        ) : abaAtiva === 'relatorios' ? (
+          <Relatorios isDark={isDark} />
         ) : (
           <Dashboard
             isDark={isDark}

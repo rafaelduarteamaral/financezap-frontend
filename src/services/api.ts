@@ -58,6 +58,43 @@ export const api = {
     return data;
   },
 
+  // Atualizar transação
+  async atualizarTransacao(id: number, dados: {
+    descricao?: string;
+    valor?: number;
+    categoria?: string;
+    tipo?: 'entrada' | 'saida';
+    metodo?: 'credito' | 'debito';
+    dataHora?: string;
+    data?: string;
+    carteiraId?: number | null;
+  }) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/transacoes/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dados),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
   // Excluir transação
   async excluirTransacao(id: number) {
     const headers = getHeaders();
@@ -1057,6 +1094,62 @@ export const api = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ planoId }),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Relatórios - Gerar dados do relatório
+  async gerarDadosRelatorio(filtros: any) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/relatorios/gerar`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(filtros),
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_usuario');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Sessão expirada. Por favor, faça login novamente.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
+
+  // Relatórios - Enviar via WhatsApp
+  async enviarRelatorioWhatsApp(filtros: any) {
+    const headers = getHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/relatorios/enviar-whatsapp`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(filtros),
     });
     
     if (response.status === 401) {

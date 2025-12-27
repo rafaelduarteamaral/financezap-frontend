@@ -33,3 +33,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=financezap-frontend
 
+
+
+

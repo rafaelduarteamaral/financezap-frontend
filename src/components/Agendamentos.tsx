@@ -360,9 +360,9 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <FaLayerGroup className={isDark ? 'text-primary-400' : 'text-primary-600'} size={18} />
-                            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                              {agendamentoPai.descricao}
-                            </h3>
+                          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            {agendamentoPai.descricao}
+                          </h3>
                           </div>
                           <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                             {serie.length} parcelas • {pagos.length} pagas • {pendentes.length} pendentes
@@ -370,12 +370,12 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                         </div>
                         
                         <div className="flex items-center gap-2 flex-wrap justify-end">
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            proximaParcela 
-                              ? isDark ? 'bg-blue-900/30 text-blue-400 border border-blue-800' : 'bg-blue-50 text-blue-600 border border-blue-200'
-                              : isDark ? 'bg-green-900/30 text-green-400 border border-green-800' : 'bg-green-50 text-green-600 border border-green-200'
-                          }`}>
-                            {proximaParcela ? `Próxima: Parcela ${proximaParcela.parcelaAtual}` : 'Todas pagas'}
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          proximaParcela 
+                            ? isDark ? 'bg-blue-900/30 text-blue-400 border border-blue-800' : 'bg-blue-50 text-blue-600 border border-blue-200'
+                            : isDark ? 'bg-green-900/30 text-green-400 border border-green-800' : 'bg-green-50 text-green-600 border border-green-200'
+                        }`}>
+                          {proximaParcela ? `Próxima: Parcela ${proximaParcela.parcelaAtual}` : 'Todas pagas'}
                           </div>
                           
                           {/* Botões de ação do grupo */}
@@ -414,16 +414,16 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                         <AnimatePresence>
                           {parcelasVisiveis.map((ag) => (
                             <motion.div
-                              key={ag.id}
+                            key={ag.id}
                               initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
                               className={`p-3 rounded-lg border relative group ${
-                                ag.id === proximaParcela?.id
-                                  ? isDark ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'
-                                  : isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'
-                              }`}
-                            >
+                              ag.id === proximaParcela?.id
+                                ? isDark ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'
+                                : isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'
+                            }`}
+                          >
                               {/* Botão de remover parcela individual */}
                               <motion.button
                                 onClick={() => handleRemover(ag.id)}
@@ -439,46 +439,46 @@ export function Agendamentos({ isDark }: AgendamentosProps) {
                                 <FaTimesCircle size={12} />
                               </motion.button>
                               
-                              <div className="flex items-center justify-between mb-2">
-                                <span className={`text-xs font-medium ${
-                                  ag.id === proximaParcela?.id
-                                    ? isDark ? 'text-blue-400' : 'text-blue-600'
-                                    : isDark ? 'text-slate-400' : 'text-slate-600'
-                                }`}>
-                                  Parcela {ag.parcelaAtual}
-                                </span>
-                                <span className={`text-xs px-2 py-0.5 rounded ${
-                                  ag.status === 'pago'
-                                    ? isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'
-                                    : ag.status === 'cancelado'
-                                    ? isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700'
-                                    : isDark ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
-                                }`}>
-                                  {ag.status === 'pago' ? 'Pago' : ag.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
-                                </span>
-                              </div>
-                              <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                {formatarMoeda(ag.valor)}
-                              </p>
-                              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                                {formatarData(ag.dataAgendamento)}
-                              </p>
-                              {ag.id === proximaParcela?.id && ag.status === 'pendente' && (
-                                <motion.button
-                                  onClick={() => handleAtualizarStatus(ag.id, 'pago')}
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`text-xs font-medium ${
+                                ag.id === proximaParcela?.id
+                                  ? isDark ? 'text-blue-400' : 'text-blue-600'
+                                  : isDark ? 'text-slate-400' : 'text-slate-600'
+                              }`}>
+                                Parcela {ag.parcelaAtual}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                ag.status === 'pago'
+                                  ? isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'
+                                  : ag.status === 'cancelado'
+                                  ? isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700'
+                                  : isDark ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {ag.status === 'pago' ? 'Pago' : ag.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
+                              </span>
+                            </div>
+                            <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                              {formatarMoeda(ag.valor)}
+                            </p>
+                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                              {formatarData(ag.dataAgendamento)}
+                            </p>
+                            {ag.id === proximaParcela?.id && ag.status === 'pendente' && (
+                              <motion.button
+                                onClick={() => handleAtualizarStatus(ag.id, 'pago')}
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                   className={`mt-2 w-full px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                                    isDark
-                                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                                  }`}
-                                >
-                                  Pagar Agora
-                                </motion.button>
-                              )}
+                                  isDark
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                }`}
+                              >
+                                Pagar Agora
+                              </motion.button>
+                            )}
                             </motion.div>
-                          ))}
+                        ))}
                         </AnimatePresence>
                       </div>
                       

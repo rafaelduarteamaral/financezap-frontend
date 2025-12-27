@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaPlus } from 'react-icons/fa';
+import { CurrencyInputCustom } from './CurrencyInputCustom';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -34,7 +35,7 @@ export function ModalFormularioAgendamento({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     descricao: '',
-    valor: '',
+    valor: 0 as number,
     dataAgendamento: '',
     tipo: 'pagamento' as 'pagamento' | 'recebimento',
     categoria: 'outros',
@@ -42,13 +43,27 @@ export function ModalFormularioAgendamento({
     totalParcelas: '',
   });
 
+  // Funções auxiliares para arredondar valores
+  const arredondarParaCentavos = (valor: number | undefined | null): number => {
+    if (valor === undefined || valor === null || isNaN(valor)) return 0;
+    return Math.round(valor * 100) / 100;
+  };
+
+  const handleValorChange = (novoValor: number) => {
+    const valorFormatado = arredondarParaCentavos(novoValor);
+    setFormData({
+      ...formData,
+      valor: valorFormatado,
+    });
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (agendamentoParaEditar) {
         // Preenche formulário com dados do agendamento para edição
         setFormData({
           descricao: agendamentoParaEditar.descricao,
-          valor: agendamentoParaEditar.valor.toString(),
+          valor: arredondarParaCentavos(agendamentoParaEditar.valor),
           dataAgendamento: agendamentoParaEditar.dataAgendamento,
           tipo: agendamentoParaEditar.tipo,
           categoria: agendamentoParaEditar.categoria || 'outros',
@@ -63,7 +78,7 @@ export function ModalFormularioAgendamento({
         
         setFormData({
           descricao: '',
-          valor: '',
+          valor: 0,
           dataAgendamento: amanha.toISOString().split('T')[0],
           tipo: 'pagamento',
           categoria: 'outros',
@@ -74,6 +89,9 @@ export function ModalFormularioAgendamento({
     }
   }, [isOpen, agendamentoParaEditar]);
 
+  // Não precisa de event listener adicional - o CurrencyInput já gerencia a digitação começando pelos centavos
+  // quando o value é undefined (campo vazio)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -82,7 +100,8 @@ export function ModalFormularioAgendamento({
       return;
     }
     
-    if (!formData.valor || parseFloat(formData.valor) <= 0) {
+    const valor = arredondarParaCentavos(formData.valor);
+    if (!valor || isNaN(valor) || valor <= 0) {
       showError('Valor inválido');
       return;
     }
@@ -103,7 +122,7 @@ export function ModalFormularioAgendamento({
         // Edição
         await api.atualizarAgendamento(agendamentoParaEditar.id, {
           descricao: formData.descricao.trim(),
-          valor: parseFloat(formData.valor),
+          valor: valor,
           dataAgendamento: formData.dataAgendamento,
           tipo: formData.tipo,
           categoria: formData.categoria,
@@ -114,7 +133,7 @@ export function ModalFormularioAgendamento({
         // Criação
         await api.criarAgendamento({
           descricao: formData.descricao.trim(),
-          valor: parseFloat(formData.valor),
+          valor: valor,
           dataAgendamento: formData.dataAgendamento,
           tipo: formData.tipo,
           categoria: formData.categoria,
@@ -225,21 +244,18 @@ export function ModalFormularioAgendamento({
                   >
                     Valor (R$) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                  <CurrencyInputCustom
+                    id="valor-input"
+                    name="valor"
                     value={formData.valor}
-                    onChange={(e) =>
-                      setFormData({ ...formData, valor: e.target.value })
-                    }
+                    onChange={handleValorChange}
+                    placeholder="R$ 0,00"
                     required
                     className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       isDark
                         ? 'border-slate-600 bg-slate-700 text-white'
                         : 'border-slate-300 bg-white text-slate-900'
                     }`}
-                    placeholder="0.00"
                   />
                 </div>
 
@@ -437,4 +453,3 @@ export function ModalFormularioAgendamento({
     </AnimatePresence>
   );
 }
-

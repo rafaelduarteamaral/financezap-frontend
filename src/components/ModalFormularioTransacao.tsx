@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaPlus } from 'react-icons/fa';
+import { CurrencyInputCustom } from './CurrencyInputCustom';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import type { Transacao } from '../config';
 
 interface ModalFormularioTransacaoProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface ModalFormularioTransacaoProps {
   onSuccess: () => void;
   isDark: boolean;
   categorias: string[];
+  transacaoEditar?: Transacao | null;
 }
 
 export function ModalFormularioTransacao({
@@ -18,6 +21,7 @@ export function ModalFormularioTransacao({
   onSuccess,
   isDark,
   categorias,
+  transacaoEditar,
 }: ModalFormularioTransacaoProps) {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
@@ -45,13 +49,27 @@ export function ModalFormularioTransacao({
 
   const [formData, setFormData] = useState({
     descricao: '',
-    valor: '',
+    valor: 0 as number,
     categoria: 'outros',
     tipo: 'saida' as 'entrada' | 'saida',
     metodo: 'debito' as 'credito' | 'debito',
     dataHora: getDataHoraAtual(),
     carteiraId: null as number | null,
   });
+
+  // Funções auxiliares para arredondar valores
+  const arredondarParaCentavos = (valor: number | undefined | null): number => {
+    if (valor === undefined || valor === null || isNaN(valor)) return 0;
+    return Math.round(valor * 100) / 100;
+  };
+
+  const handleValorChange = (novoValor: number) => {
+    const valorFormatado = arredondarParaCentavos(novoValor);
+    setFormData({
+      ...formData,
+      valor: valorFormatado,
+    });
+  };
 
   // Carrega carteiras quando o modal abre
   useEffect(() => {
@@ -82,25 +100,67 @@ export function ModalFormularioTransacao({
     }
   }, [isOpen]);
 
+  // Função para converter dataHora do backend (pt-BR) para datetime-local
+  const converterDataHoraParaInput = (dataHora: string): string => {
+    try {
+      // Tenta parsear o formato pt-BR: "DD/MM/YYYY, HH:mm:ss" ou "DD/MM/YYYY, HH:mm"
+      const partes = dataHora.split(', ');
+      if (partes.length === 2) {
+        const [data, hora] = partes;
+        const [dia, mes, ano] = data.split('/');
+        const [h, m] = hora.split(':');
+        return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+      }
+      // Fallback: tenta parsear como ISO
+      const date = new Date(dataHora);
+      if (!isNaN(date.getTime())) {
+        const ano = date.getFullYear();
+        const mes = String(date.getMonth() + 1).padStart(2, '0');
+        const dia = String(date.getDate()).padStart(2, '0');
+        const hora = String(date.getHours()).padStart(2, '0');
+        const minuto = String(date.getMinutes()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+      }
+    } catch (e) {
+      // Se falhar, retorna data/hora atual
+    }
+    return getDataHoraAtual();
+  };
+
   useEffect(() => {
     if (isOpen) {
-      // Reset form when modal opens com data/hora atual
-      // Garante que a categoria padrão existe na lista
-      const categoriaPadrao = categorias && categorias.length > 0 && categorias.includes('outros') 
-        ? 'outros' 
-        : (categorias && categorias.length > 0 ? categorias[0] : 'outros');
-      
-      setFormData({
-        descricao: '',
-        valor: '',
-        categoria: categoriaPadrao,
-        tipo: 'saida',
-        metodo: 'debito',
-        dataHora: getDataHoraAtual(),
-        carteiraId: carteiraPadrao,
-      });
+      if (transacaoEditar) {
+        // Modo edição: carrega dados da transação
+        setFormData({
+          descricao: transacaoEditar.descricao || '',
+          valor: arredondarParaCentavos(transacaoEditar.valor),
+          categoria: transacaoEditar.categoria || 'outros',
+          tipo: transacaoEditar.tipo || 'saida',
+          metodo: transacaoEditar.metodo || 'debito',
+          dataHora: transacaoEditar.dataHora ? converterDataHoraParaInput(transacaoEditar.dataHora) : getDataHoraAtual(),
+          carteiraId: transacaoEditar.carteira?.id || carteiraPadrao,
+        });
+      } else {
+        // Modo criação: reset form quando o modal abre
+        const categoriaPadrao = categorias && categorias.length > 0 && categorias.includes('outros') 
+          ? 'outros' 
+          : (categorias && categorias.length > 0 ? categorias[0] : 'outros');
+        
+        setFormData({
+          descricao: '',
+          valor: 0,
+          categoria: categoriaPadrao,
+          tipo: 'saida',
+          metodo: 'debito',
+          dataHora: getDataHoraAtual(),
+          carteiraId: carteiraPadrao,
+        });
+      }
     }
-  }, [isOpen, categorias]);
+  }, [isOpen, categorias, transacaoEditar]);
+
+  // Não precisa de event listener adicional - o CurrencyInput já gerencia a digitação começando pelos centavos
+  // quando o value é undefined (campo vazio)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,8 +176,8 @@ export function ModalFormularioTransacao({
       return;
     }
     
-    const valor = parseFloat(formData.valor);
-    if (!formData.valor || isNaN(valor) || valor <= 0) {
+    const valor = arredondarParaCentavos(formData.valor);
+    if (!valor || isNaN(valor) || valor <= 0) {
       showError('Valor inválido. Deve ser maior que zero');
       return;
     }
@@ -138,16 +198,18 @@ export function ModalFormularioTransacao({
       return;
     }
     
-    // Validação: data não pode ser futura (exceto agendamentos)
-    const dataTransacao = new Date(formData.dataHora);
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const dataTransacaoSemHora = new Date(dataTransacao);
-    dataTransacaoSemHora.setHours(0, 0, 0, 0);
-    
-    if (dataTransacaoSemHora > hoje) {
-      showError('Não é possível criar transações com data futura. Use agendamentos para isso.');
-      return;
+    // Validação: data não pode ser futura (exceto em edição)
+    if (!transacaoEditar) {
+      const dataTransacao = new Date(formData.dataHora);
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const dataTransacaoSemHora = new Date(dataTransacao);
+      dataTransacaoSemHora.setHours(0, 0, 0, 0);
+      
+      if (dataTransacaoSemHora > hoje) {
+        showError('Não é possível criar transações com data futura. Use agendamentos para isso.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -168,9 +230,15 @@ export function ModalFormularioTransacao({
         carteiraId: formData.carteiraId,
       };
       
-      await api.criarTransacao(dadosTransacao);
-      
-      showSuccess('Transação criada com sucesso!');
+      if (transacaoEditar?.id) {
+        // Modo edição
+        await api.atualizarTransacao(transacaoEditar.id, dadosTransacao);
+        showSuccess('Transação atualizada com sucesso!');
+      } else {
+        // Modo criação
+        await api.criarTransacao(dadosTransacao);
+        showSuccess('Transação criada com sucesso!');
+      }
       
       // Aguarda um pouco antes de chamar onSuccess para garantir que o backend processou
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -178,7 +246,7 @@ export function ModalFormularioTransacao({
       onSuccess();
       onClose();
     } catch (error: any) {
-      showError(error.message || 'Erro ao criar transação');
+      showError(error.message || (transacaoEditar ? 'Erro ao atualizar transação' : 'Erro ao criar transação'));
     } finally {
       setLoading(false);
     }
@@ -222,7 +290,7 @@ export function ModalFormularioTransacao({
                     isDark ? 'text-white' : 'text-slate-900'
                   }`}
                 >
-                  Nova Transação
+                  {transacaoEditar ? 'Editar Transação' : 'Nova Transação'}
                 </h2>
                 <button
                   onClick={onClose}
@@ -272,21 +340,18 @@ export function ModalFormularioTransacao({
                   >
                     Valor (R$) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                  <CurrencyInputCustom
+                    id="valor-input"
+                    name="valor"
                     value={formData.valor}
-                    onChange={(e) =>
-                      setFormData({ ...formData, valor: e.target.value })
-                    }
+                    onChange={handleValorChange}
+                    placeholder="R$ 0,00"
                     required
                     className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       isDark
                         ? 'border-slate-600 bg-slate-700 text-white'
                         : 'border-slate-300 bg-white text-slate-900'
                     }`}
-                    placeholder="0.00"
                   />
                 </div>
 
@@ -468,8 +533,14 @@ export function ModalFormularioTransacao({
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <FaPlus size={14} />
-                        Criar
+                        {transacaoEditar ? (
+                          'Salvar'
+                        ) : (
+                          <>
+                            <FaPlus size={14} />
+                            Criar
+                          </>
+                        )}
                       </>
                     )}
                   </button>
@@ -482,4 +553,3 @@ export function ModalFormularioTransacao({
     </AnimatePresence>
   );
 }
-

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaCheckCircle, FaWallet } from 'react-icons/fa';
+import { CurrencyInputCustom } from './CurrencyInputCustom';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -36,12 +37,12 @@ export function ModalConfirmacaoPagamento({
   const [loading, setLoading] = useState(false);
   const [carteiras, setCarteiras] = useState<Carteira[]>([]);
   const [carteiraSelecionada, setCarteiraSelecionada] = useState<number | null>(null);
-  const [valorPago, setValorPago] = useState<string>('');
+  const [valorPago, setValorPago] = useState<number>(0);
 
   useEffect(() => {
     if (isOpen) {
       // Reset form when modal opens
-      setValorPago(agendamento.valor.toString());
+      setValorPago(agendamento.valor);
       setCarteiraSelecionada(null);
       carregarCarteiras();
     }
@@ -73,8 +74,7 @@ export function ModalConfirmacaoPagamento({
       return;
     }
     
-    const valor = parseFloat(valorPago);
-    if (isNaN(valor) || valor <= 0) {
+    if (isNaN(valorPago) || valorPago <= 0) {
       showError('Valor inválido');
       return;
     }
@@ -86,7 +86,7 @@ export function ModalConfirmacaoPagamento({
       await api.atualizarAgendamento(agendamento.id, { 
         status: 'pago',
         carteiraId: carteiraSelecionada,
-        valorPago: valor,
+        valorPago: valorPago,
       });
       
       showSuccess(
@@ -216,21 +216,22 @@ export function ModalConfirmacaoPagamento({
                   >
                     Valor {agendamento.tipo === 'recebimento' ? 'Recebido' : 'Pago'} (R$) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                  <CurrencyInputCustom
+                    id="valor-pago-input"
+                    name="valorPago"
                     value={valorPago}
-                    onChange={(e) => setValorPago(e.target.value)}
+                    onChange={(novoValor) => {
+                      setValorPago(novoValor);
+                    }}
+                    placeholder="R$ 0,00"
                     required
                     className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       isDark
                         ? 'border-slate-600 bg-slate-700 text-white'
                         : 'border-slate-300 bg-white text-slate-900'
                     }`}
-                    placeholder="0.00"
                   />
-                  {parseFloat(valorPago) !== agendamento.valor && (
+                  {valorPago !== agendamento.valor && (
                     <p className={`text-xs mt-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
                       ⚠️ Valor diferente do agendado ({formatarMoeda(agendamento.valor)})
                     </p>

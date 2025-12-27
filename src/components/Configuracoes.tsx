@@ -118,6 +118,24 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
   // Atualiza os estados quando o usuário muda ou quando o modal abre
   useEffect(() => {
     if (isOpen) {
+      // Recarrega dados do perfil quando o modal de configurações é aberto
+      const recarregarPerfil = async () => {
+        try {
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            const response = await api.verifyToken(token);
+            if (response.success && response.usuario) {
+              // Atualiza o contexto com os dados mais recentes
+              atualizarUsuario(response.usuario);
+            }
+          }
+        } catch (error) {
+          // Erro silencioso - mantém dados existentes
+        }
+      };
+      
+      recarregarPerfil();
+      
       if (usuario) {
         setNome(usuario.nome || '');
         // Carrega email se disponível
@@ -129,7 +147,15 @@ export function Configuracoes({ isOpen, onClose }: ConfiguracoesProps) {
       // Reseta o modo de edição quando abre o modal
       setEditando(false);
     }
-  }, [usuario, isOpen, abaAtiva]);
+  }, [isOpen, abaAtiva]);
+  
+  // Atualiza campos quando usuário muda (após recarregar)
+  useEffect(() => {
+    if (usuario) {
+      setNome(usuario.nome || '');
+      setEmail(usuario.email || '');
+    }
+  }, [usuario]);
 
   const handleSalvarPerfil = async () => {
     if (!nome.trim()) {

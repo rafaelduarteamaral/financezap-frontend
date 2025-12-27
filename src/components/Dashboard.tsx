@@ -66,6 +66,7 @@ export function Dashboard({
     saldoPrevisto: false,
   });
   const [modalTransacaoAberto, setModalTransacaoAberto] = useState(false);
+  const [transacaoEditar, setTransacaoEditar] = useState<Transacao | null>(null);
   const [filtrosAvancadosExpandidos, setFiltrosAvancadosExpandidos] = useState(false);
 
   const toggleCard = (card: string) => {
@@ -342,16 +343,16 @@ export function Dashboard({
   const transacoesFiltradas = todasTransacoesParaGraficos.filter((t) => {
     if (!t.dataHora) return false;
     try {
-      if (filtros.dataInicio || filtros.dataFim) {
-        const dataTransacao = new Date(t.dataHora);
+    if (filtros.dataInicio || filtros.dataFim) {
+      const dataTransacao = new Date(t.dataHora);
         if (isNaN(dataTransacao.getTime())) return false;
-        const dataInicio = filtros.dataInicio ? new Date(filtros.dataInicio) : null;
-        const dataFim = filtros.dataFim ? new Date(filtros.dataFim + 'T23:59:59') : null;
-        
-        if (dataInicio && dataTransacao < dataInicio) return false;
-        if (dataFim && dataTransacao > dataFim) return false;
-      }
-      return true;
+      const dataInicio = filtros.dataInicio ? new Date(filtros.dataInicio) : null;
+      const dataFim = filtros.dataFim ? new Date(filtros.dataFim + 'T23:59:59') : null;
+      
+      if (dataInicio && dataTransacao < dataInicio) return false;
+      if (dataFim && dataTransacao > dataFim) return false;
+    }
+    return true;
     } catch {
       return false;
     }
@@ -372,9 +373,9 @@ export function Dashboard({
     const transacoesAnteriores = todasTransacoesParaGraficos.filter((t) => {
       if (!t.dataHora) return false;
       try {
-        const dataTransacao = new Date(t.dataHora);
+      const dataTransacao = new Date(t.dataHora);
         if (isNaN(dataTransacao.getTime())) return false;
-        return dataTransacao < dataInicio;
+      return dataTransacao < dataInicio;
       } catch {
         return false;
       }
@@ -1367,7 +1368,14 @@ export function Dashboard({
         data={transacoes}
         isDark={isDark}
         onDelete={handleExcluirTransacao}
-        onNewTransaction={() => setModalTransacaoAberto(true)}
+        onEdit={(transacao) => {
+          setTransacaoEditar(transacao);
+          setModalTransacaoAberto(true);
+        }}
+        onNewTransaction={() => {
+          setTransacaoEditar(null);
+          setModalTransacaoAberto(true);
+        }}
         formatarMoeda={formatarMoeda}
         formatarData={formatarData}
         total={totalTransacoes}
@@ -1376,17 +1384,22 @@ export function Dashboard({
         manualPagination={true}
       />
 
-      {/* Modal de Nova Transação */}
+      {/* Modal de Nova/Editar Transação */}
       <ModalFormularioTransacao
         isOpen={modalTransacaoAberto}
-        onClose={() => setModalTransacaoAberto(false)}
+        onClose={() => {
+          setModalTransacaoAberto(false);
+          setTransacaoEditar(null);
+        }}
         onSuccess={async () => {
           // Aguarda um pouco para o backend processar
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // Limpa TODOS os filtros e recarrega os dados
           limparFiltros();
+          setTransacaoEditar(null);
         }}
+        transacaoEditar={transacaoEditar}
         isDark={isDark}
         categorias={todasCategorias}
       />

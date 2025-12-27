@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../services/api';
 
@@ -50,13 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       // Depois, verifica se o token JWT ainda é válido (em background)
+      // E recarrega os dados do perfil do servidor
       // Mas não bloqueia a UI enquanto verifica
       api.verifyToken(savedToken)
         .then((data) => {
           if (data.success && data.usuario) {
-            // Token válido - atualiza dados
+            // Token válido - atualiza dados com informações do servidor
             setUsuario(data.usuario);
-              localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
+            localStorage.setItem('auth_usuario', JSON.stringify(data.usuario));
           }
         })
         .catch((error) => {
@@ -120,13 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('auth_usuario');
   };
 
-  const atualizarUsuario = (dados: Partial<Usuario>) => {
-    if (usuario) {
-      const usuarioAtualizado = { ...usuario, ...dados };
-      setUsuario(usuarioAtualizado);
+  const atualizarUsuario = useCallback((dados: Partial<Usuario>) => {
+    setUsuario((usuarioAtual) => {
+      if (!usuarioAtual) return usuarioAtual;
+      const usuarioAtualizado = { ...usuarioAtual, ...dados };
       localStorage.setItem('auth_usuario', JSON.stringify(usuarioAtualizado));
-    }
-  };
+      return usuarioAtualizado;
+    });
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -152,4 +154,3 @@ export function useAuth() {
   }
   return context;
 }
-

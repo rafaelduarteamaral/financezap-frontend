@@ -11,7 +11,7 @@ import {
   type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
-import { FaSort, FaSortUp, FaSortDown, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaSort, FaSortUp, FaSortDown, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import type { Transacao } from '../config';
 import { capitalize } from '../utils/capitalize';
 
@@ -19,6 +19,7 @@ interface DataTableProps {
   data: Transacao[];
   isDark: boolean;
   onDelete?: (id: number) => void;
+  onEdit?: (transacao: Transacao) => void;
   onNewTransaction?: () => void;
   formatarMoeda: (valor: number) => string;
   formatarData: (data: string) => string;
@@ -33,6 +34,7 @@ export function DataTable({
   data,
   isDark,
   onDelete,
+  onEdit,
   onNewTransaction,
   formatarMoeda,
   formatarData,
@@ -41,7 +43,10 @@ export function DataTable({
   onPaginationChange,
   manualPagination = false,
 }: DataTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // Ordenação padrão: mais recentes primeiro (por dataHora desc)
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'dataHora', desc: true }
+  ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [pagination, setPagination] = useState({
@@ -327,22 +332,39 @@ export function DataTable({
         id: 'acoes',
         header: 'Ações',
         cell: ({ row }) => {
-          if (!row.original.id || !onDelete) return null;
+          if (!row.original.id) return null;
           return (
-            <div className="flex justify-center">
-              <motion.button
-                onClick={() => onDelete(row.original.id!)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`p-2 rounded-lg transition-colors ${
-                  isDark
-                    ? 'text-red-400 hover:bg-red-900/20 hover:text-red-300'
-                    : 'text-red-600 hover:bg-red-50 hover:text-red-700'
-                }`}
-                title="Excluir transação"
-              >
-                <FaTrash size={16} />
-              </motion.button>
+            <div className="flex justify-center gap-2">
+              {onEdit && (
+                <motion.button
+                  onClick={() => onEdit(row.original)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDark
+                      ? 'text-primary-400 hover:bg-primary-900/20 hover:text-primary-300'
+                      : 'text-primary-600 hover:bg-primary-50 hover:text-primary-700'
+                  }`}
+                  title="Editar transação"
+                >
+                  <FaEdit size={16} />
+                </motion.button>
+              )}
+              {onDelete && (
+                <motion.button
+                  onClick={() => onDelete(row.original.id!)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDark
+                      ? 'text-red-400 hover:bg-red-900/20 hover:text-red-300'
+                      : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+                  }`}
+                  title="Excluir transação"
+                >
+                  <FaTrash size={16} />
+                </motion.button>
+              )}
             </div>
           );
         },
@@ -350,7 +372,7 @@ export function DataTable({
         enableColumnFilter: false,
       },
     ],
-    [isDark, formatarMoeda, formatarData, onDelete]
+    [isDark, formatarMoeda, formatarData, onDelete, onEdit]
   );
 
   const table = useReactTable({

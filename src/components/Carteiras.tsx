@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { motion } from 'framer-motion';
 import { FaWallet, FaPlus, FaEdit, FaTrash, FaStar, FaStarOfLife } from 'react-icons/fa';
 import { AnimatedIcon } from './AnimatedIcon';
+import { CurrencyInputCustom } from './CurrencyInputCustom';
 
 interface Carteira {
   id: number;
@@ -33,7 +34,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
     nome: '',
     descricao: '',
     tipo: 'debito' as 'debito' | 'credito',
-    limiteCredito: '' as string | number,
+    limiteCredito: 0 as number,
     diaPagamento: '' as string | number,
     padrao: false,
   });
@@ -66,11 +67,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
 
     // Validações para carteira de crédito
     if (formData.tipo === 'credito') {
-      const limite = typeof formData.limiteCredito === 'string' 
-        ? parseFloat(formData.limiteCredito) 
-        : formData.limiteCredito;
-      
-      if (!limite || limite <= 0) {
+      if (!formData.limiteCredito || formData.limiteCredito <= 0) {
         showError('Limite de crédito é obrigatório e deve ser maior que zero');
         return;
       }
@@ -92,9 +89,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
         tipo: formData.tipo,
         padrao: formData.padrao,
         ...(formData.tipo === 'credito' && {
-          limiteCredito: typeof formData.limiteCredito === 'string' 
-            ? parseFloat(formData.limiteCredito) 
-            : formData.limiteCredito,
+          limiteCredito: formData.limiteCredito,
           diaPagamento: typeof formData.diaPagamento === 'string'
             ? parseInt(formData.diaPagamento)
             : formData.diaPagamento,
@@ -115,7 +110,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
         nome: '', 
         descricao: '', 
         tipo: 'debito',
-        limiteCredito: '',
+        limiteCredito: 0,
         diaPagamento: '',
         padrao: false 
       });
@@ -131,7 +126,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
       nome: carteira.nome,
       descricao: carteira.descricao || '',
       tipo: (carteira.tipo || 'debito') as 'debito' | 'credito',
-      limiteCredito: carteira.limiteCredito || '',
+      limiteCredito: carteira.limiteCredito || 0,
       diaPagamento: carteira.diaPagamento || '',
       padrao: carteira.padrao,
     });
@@ -200,7 +195,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
                   nome: '', 
                   descricao: '', 
                   tipo: 'debito',
-                  limiteCredito: '',
+                  limiteCredito: 0,
                   diaPagamento: '',
                   padrao: false 
                 });
@@ -276,7 +271,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
                     ...formData, 
                     tipo: novoTipo,
                     // Limpa campos de crédito se mudar para débito
-                    ...(novoTipo === 'debito' && { limiteCredito: '', diaPagamento: '' })
+                    ...(novoTipo === 'debito' && { limiteCredito: 0, diaPagamento: '' })
                   });
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
@@ -295,17 +290,18 @@ export function Carteiras({ isDark }: CarteirasProps) {
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                     Limite de Crédito *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                  <CurrencyInputCustom
+                    id="limite-credito-input"
+                    name="limiteCredito"
                     value={formData.limiteCredito}
-                    onChange={(e) => setFormData({ ...formData, limiteCredito: e.target.value })}
+                    onChange={(novoValor: number) => {
+                      setFormData({ ...formData, limiteCredito: novoValor });
+                    }}
+                    placeholder="R$ 0,00"
+                    required={formData.tipo === 'credito'}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       isDark ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-900'
                     }`}
-                    required={formData.tipo === 'credito'}
-                    placeholder="Ex: 5000.00"
                   />
                 </div>
 
@@ -367,7 +363,7 @@ export function Carteiras({ isDark }: CarteirasProps) {
                     nome: '', 
                     descricao: '', 
                     tipo: 'debito',
-                    limiteCredito: '',
+                    limiteCredito: 0,
                     diaPagamento: '',
                     padrao: false 
                   });
